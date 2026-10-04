@@ -12,6 +12,7 @@ selection, editing, and pointer interactions off the main cell-rendering path.
 - Virtualized rows and center columns
 - Left and right frozen columns
 - Cell focus, range selection, and checkbox row selection
+- Touch hold-and-drag range selection with edge scrolling
 - Keyboard navigation and type-to-edit
 - Custom cell, header, editor, and selection-checkbox renderers
 - Stable-ID imperative cell focus
@@ -213,9 +214,21 @@ pnpm build            # ESM library + static single-grid app
 pnpm check:package    # build + artifact contract
 pnpm exec playwright install chromium
 pnpm check:consumers  # real tarballs in isolated Vite/Next consumers
+pnpm check:touch      # Chromium touch gestures; requires pnpm dev in another terminal
 ```
 
 See [INTERNALS.md](./INTERNALS.md) for the rendering model and performance constraints.
+
+For phone testing through ngrok, put the tunnel hostname (without `https://` or a port) in
+`apps/docs/.env.local`, then restart `pnpm dev`:
+
+```dotenv
+DEV_TUNNEL_HOST=your-tunnel.ngrok-free.dev
+```
+
+The development app uses this hostname in Next.js `allowedDevOrigins` so its dev WebSocket can
+connect through the tunnel. Without it, the page can remain on its server-rendered skeleton.
+Update the value if your tunnel hostname changes. The local environment file is Git-ignored.
 
 ## Styling and themes
 

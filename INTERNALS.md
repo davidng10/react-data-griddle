@@ -197,8 +197,17 @@ commit-announcement subscription or live region. Default editor validation still
 associated error. Pending visual content is aria-hidden so it cannot duplicate semantic cells.
 
 The outer frame contains the scroller and its sibling status layer; no toolbar layout wrapper is needed.
-Pointer movement, selection and resize/reorder guides stay in stores. Normal touch only records a
-tap candidate and preserves native scrolling. The shell owns the pointer ID, cancels on additional
-contacts and invalidates gestures when source identity/geometry changes. No built-in actions panel
-is rendered. Deliberate touch ranges, touch edit entry and keyboard/touch column actions require
-replacement interactions; touch header dragging is currently absent.
+Pointer movement, selection and resize/reorder guides stay in stores. Touch starts a tap/hold
+candidate with a 500 ms timer and an 8px movement tolerance. Early movement leaves native scrolling
+alone. Activation creates a one-cell range, then uses existing hit testing and edge auto-scroll.
+The shell owns the pointer ID, captures on the stable scroller and cancels on additional contacts
+or source identity/geometry changes. The non-passive native touchmove listener is installed during
+pointerdown, before touchstart, and prevents scrolling only for an activated range. It remains on
+the original touch target even if virtualization detaches that target; pointer capture keeps the
+release/cancel path on the scroller. Listener/timer/animation-frame cleanup covers release,
+cancellation and unmount. Committed handler refs avoid stale geometry in native events. Do not
+switch touch-action after activation: browsers decide that policy when contact begins.
+
+No built-in actions panel is rendered. Touch edit entry and keyboard/touch column actions remain
+unimplemented; touch header dragging is currently absent. Physical-device verification is separate
+from the source and Chromium touch-input regressions.

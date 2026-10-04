@@ -1,6 +1,6 @@
 # Accessibility and interaction
 
-Data Griddle's source implementation includes grid semantics, keyboard navigation and touch tap/scroll handling. Browser,
+Data Griddle's source implementation includes grid semantics, keyboard navigation and touch tap/scroll and hold-to-select handling. Browser,
 physical-device and screen-reader compatibility is **not yet verified**. The first release remains
 blocked on the manual matrix below. Automated tests and a browser accessibility tree do not establish
 screen-reader usability.
@@ -87,15 +87,30 @@ save/cancel controls and focus. Test them independently, including with the on-s
 
 ## Touch and narrow layouts
 
-Normal touch on cells and headers preserves browser scrolling and pinch zoom. A release within 8px
-without scroll movement selects a cell; repeated taps do not implicitly edit. Native/custom selection
-controls retain normal tap activation. Pending taps are cancelled on additional contacts, cancellation,
-loading and identity/geometry changes. Mouse drag selection and header manipulation remain available.
+Swipe immediately on cells or headers to scroll normally. A short tap within 8px without scrolling
+focuses a cell; repeated taps do not implicitly edit. Native/custom controls retain their normal
+activation and scrolling behavior.
 
-**Implementation gaps (2026-09-27):** the built-in actions panel was removed at the user's request.
-Touch entry into editing, deliberate touch range selection, and touch column resizing/reordering
-need replacement interactions. These remain required preview features, not completed verification
-items. Normal touch header dragging does not resize/reorder, and normal swipes never select a range.
+Hold a selectable cell for 500 ms, staying within 8px, to start a range. A one-cell highlight marks
+activation. Keep the finger down and drag to extend across cells and frozen zones. After crossing a
+cell, moving near the edges scrolls the grid automatically. Lift to retain the range; the next
+ordinary swipe scrolls again without changing that selection. A short tap focuses a new cell and
+clears the range. There is no control panel or persistent touch selection mode.
+
+Moving more than 8px or scrolling before activation cancels the hold, even if the finger returns.
+An extra contact, pointer cancellation/lost capture, Escape, loading, changed row identities/order
+or column geometry, window blur/resize, or ancestor scrolling stops the gesture and its auto-scroll.
+Updating row values with the same identities/order does not by itself cancel selection. Cancellation
+retains the last range unless another operation clears or reconciles it (for example Escape or row
+removal). Native browser menus are suppressed during the claimed cell hold; controls keep theirs.
+If the browser has already taken over scrolling, the grid abandons selection instead of fighting it.
+
+**Implementation gaps (2026-10-04):** touch entry into editing and keyboard/touch column
+resizing/reordering still need direct interactions. Normal touch header dragging does not
+resize/reorder. Hold-to-select is implemented, but physical iOS/Android and assistive-technology
+verification remain outstanding. Run `pnpm check:touch` against a running `pnpm dev` app for the
+Chromium touch-input smoke check; an optional URL selects a served production export, for example
+`pnpm check:touch http://127.0.0.1:8080`. This is browser emulation, not physical-device evidence.
 
 Default checkboxes are 16px controls inside labels covering their gutter cell (40px wide); choose
 `rowHeight` 44 or larger for taller row targets. Replacement controls must provide usable targets.
@@ -183,8 +198,8 @@ Physical mobile steps (desktop viewport emulation does not satisfy these):
    on-screen keyboard. Test opening/closing/changing
    keyboard, predictive text, Japanese/Chinese/Korean IME candidates, dictation, emoji, select picker,
    native copy/paste, Save and Cancel. Candidate-confirmation Enter must not save prematurely.
-3. **Blocked until deliberate touch range interaction is implemented:** enter range selection,
-   drag across zones and beyond all edges; verify edge scrolling and range. Release
+3. Hold a cell for 500 ms until its range highlight appears, then drag across zones and beyond
+   all edges; verify edge scrolling and range, including after the starting row is virtualized out. Release
    and immediately pan normally. Repeat with pointercancel, lost capture, a second finger both inside
    and outside the grid, app switch, loading, data changes and orientation changes. No stuck capture,
    continuing scroll loop, accidental editor or resize/reorder commit is acceptable.

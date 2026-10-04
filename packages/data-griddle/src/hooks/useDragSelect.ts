@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { edgeScrollDelta } from "../internal/auto-scroll";
+import { useIsomorphicLayoutEffect as useLayoutEffect } from "../internal/use-isomorphic-layout-effect";
 
 import type { PointerEvent as ReactPointerEvent, RefObject } from "react";
 import type { GridStore } from "../core/store/grid-store";
@@ -37,6 +38,13 @@ export function useDragSelect<T>(args: {
     scrollTop: number;
     scrollLeft: number;
     cell: CellCoord;
+  } | null>(null);
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchRangeRef = useRef(false);
+  const touchListenersRef = useRef<{
+    target: EventTarget;
+    move: (event: TouchEvent) => void;
+    cancel: () => void;
   } | null>(null);
   const draggingRef = useRef(false);
   const lastHitRef = useRef<CellCoord | null>(null);
@@ -83,18 +91,42 @@ export function useDragSelect<T>(args: {
     autoScrollRef.current = requestAnimationFrame(autoScrollTick);
   };
 
-  useEffect(
-    () => () => {
-      if (autoScrollRef.current != null)
-        cancelAnimationFrame(autoScrollRef.current);
-    },
-    []
-  );
+  const detachTouchListeners = () => {
+    const listeners = touchListenersRef.current;
+    if (!listeners) return;
+    listeners.target.removeEventListener(
+      "touchmove",
+      listeners.move as EventListener
+    );
+    listeners.target.removeEventListener("touchcancel", listeners.cancel);
+    touchListenersRef.current = null;
+  };
+
+  const clearTap = () => {
+    detachTouchListeners();
+    if (holdTimerRef.current != null) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    tapRef.current = null;
+  };
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     const cell = hitTest(e.clientX, e.clientY);
     if (!cell) return; // header / gutter / outside — let native handlers (e.g. checkboxes) run
     if (e.pointerType === "touch") {
+      // Touch events retain their original target even if virtualization removes it. Keep
+      // listeners on that target until release; stable grid capture owns pointerup/cancel.
+      const target = e.target;
+      const move = (event: TouchEvent) =>
+        touchHandlersRef.current.onTouchMove(event);
+      const cancel = () => touchHandlersRef.current.cancel();
+      target.addEventListener("touchmove", move as EventListener, {
+        passive: false,
+      });
+      target.addEventListener("touchcancel", cancel);
+      touchListenersRef.current = { target, move, cancel };
+      scrollRef.current?.setPointerCapture(e.pointerId);
       tapRef.current = {
         x: e.clientX,
         y: e.clientY,
@@ -102,6 +134,30 @@ export function useDragSelect<T>(args: {
         scrollLeft: scrollRef.current?.scrollLeft ?? 0,
         cell,
       };
+      holdTimerRef.current = setTimeout(() => {
+        holdTimerRef.current = null;
+        const tap = tapRef.current;
+        const el = scrollRef.current;
+        if (!tap || !el) return;
+        if (
+          el.scrollTop !== tap.scrollTop ||
+          el.scrollLeft !== tap.scrollLeft
+        ) {
+          clearTap();
+          return;
+        }
+        tapRef.current = null;
+        touchRangeRef.current = true;
+        draggingRef.current = true;
+        movedRef.current = false;
+        pendingEditRef.current = null;
+        lastHitRef.current = tap.cell;
+        pointerRef.current = { x: tap.x, y: tap.y };
+        store.focusCell(tap.cell);
+        store.extendTo(tap.cell); // Show a one-cell range as the hold activation cue.
+        el.focus({ preventScroll: true });
+        autoScrollRef.current = requestAnimationFrame(autoScrollTick);
+      }, 500);
       return;
     }
     // Was this exact cell already the (single) focus before this press? If so, a plain click on it
@@ -132,8 +188,10 @@ export function useDragSelect<T>(args: {
       tapRef.current &&
       Math.hypot(e.clientX - tapRef.current.x, e.clientY - tapRef.current.y) > 8
     )
-      tapRef.current = null;
-    if (!draggingRef.current) return;
+      clearTap();
+    // Touch movement is consumed by the non-passive native listener below, after it has
+    // prevented browser scrolling. Pointer cancellation still uses the shell's cleanup path.
+    if (e.pointerType === "touch" || !draggingRef.current) return;
     pointerRef.current = { x: e.clientX, y: e.clientY };
     extendDrag(hitTest(e.clientX, e.clientY, true));
   };
@@ -141,7 +199,9 @@ export function useDragSelect<T>(args: {
   // End the drag and its auto-scroll loop. Shared by a clean pointer-up and an interrupted
   // lost-pointer-capture so the gesture can never be left "live".
   const stopDrag = () => {
+    detachTouchListeners();
     draggingRef.current = false;
+    touchRangeRef.current = false;
     if (autoScrollRef.current != null) {
       cancelAnimationFrame(autoScrollRef.current);
       autoScrollRef.current = null;
@@ -150,7 +210,7 @@ export function useDragSelect<T>(args: {
 
   const onPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
     const tap = tapRef.current;
-    tapRef.current = null;
+    clearTap();
     if (
       tap &&
       Math.hypot(e.clientX - tap.x, e.clientY - tap.y) <= 8 &&
@@ -183,9 +243,62 @@ export function useDragSelect<T>(args: {
   // plain hover. An interrupted gesture is an abort, so we drop the pending click-to-edit.
   const onLostPointerCapture = () => {
     stopDrag();
-    tapRef.current = null;
+    clearTap();
     pendingEditRef.current = null;
   };
+
+  const onTouchMove = (event: TouchEvent) => {
+    if (event.touches.length !== 1) {
+      onLostPointerCapture();
+      return;
+    }
+    const touch = event.touches[0];
+    if (!touchRangeRef.current) {
+      const tap = tapRef.current;
+      if (tap && Math.hypot(touch.clientX - tap.x, touch.clientY - tap.y) > 8)
+        clearTap();
+      return; // A swipe before the hold stays native, including pinch/page scrolling.
+    }
+    if (!event.cancelable) {
+      onLostPointerCapture(); // The browser already owns the gesture; never fight its scroll.
+      return;
+    }
+    event.preventDefault();
+    pointerRef.current = { x: touch.clientX, y: touch.clientY };
+    extendDrag(hitTest(touch.clientX, touch.clientY, true));
+  };
+
+  // React's delegated touch listeners can be passive. Install a native listener on pointerdown
+  // (before touchstart), so an activated hold can prevent the first scrolling move.
+  // Changing touch-action after the timer fires cannot change an ongoing browser gesture.
+  const touchHandlersRef = useRef({
+    onTouchMove,
+    cancel: onLostPointerCapture,
+  });
+  useLayoutEffect(() => {
+    touchHandlersRef.current = { onTouchMove, cancel: onLostPointerCapture };
+  });
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const cancel = () => touchHandlersRef.current.cancel();
+    const scroll = (event: Event) => {
+      // Grid scrolling during an active range is our edge auto-scroll. Any scrolling
+      // before activation, or an ancestor moving under the finger, cancels the claim.
+      if (tapRef.current || (touchRangeRef.current && event.target !== el))
+        cancel();
+    };
+    const contextMenu = (event: Event) => {
+      if (tapRef.current || touchRangeRef.current) event.preventDefault();
+    };
+    el.addEventListener("contextmenu", contextMenu);
+    document.addEventListener("scroll", scroll, true);
+    return () => {
+      cancel();
+      el.removeEventListener("contextmenu", contextMenu);
+      document.removeEventListener("scroll", scroll, true);
+    };
+  }, [scrollRef]);
 
   return {
     onPointerDown,
