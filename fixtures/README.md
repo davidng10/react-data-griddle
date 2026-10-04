@@ -21,13 +21,34 @@ a partial run does not establish the full matrix.
 
 Checks: direct Node SSR without DOM globals or warnings; strict declaration checks
 with Bundler and NodeNext resolution (strict library declarations independently of
-Next Pages Router’s skipLibCheck setting; see docs/PACKAGE_VERIFICATION.md); production builds; initial Next HTML; Chromium
+Next Pages Router’s skipLibCheck setting; see [package verification](../docs/PACKAGE_VERIFICATION.md));
+production builds; initial Next HTML; Chromium
 hydration without errors; stylesheet retention without docs CSS; keyboard focus and
 offscreen scrolling; row selection; built-in editing; custom editor popup containment
 and body portals; initial/refresh/empty states; navigation away and back, then editing.
 Temporary directories retain install/build/type/SSR logs, lockfiles, screenshots and
 exact-version results. This is desktop Chromium evidence, not a full browser/mobile/AT
 support claim. No publish or deploy command runs.
+
+## Running a generated consumer manually
+
+After a successful `pnpm check:consumers` run, use the `Isolated consumers:` directory printed by
+the script. Each matrix entry is an installed, built consumer, and remains after its test server
+stops. For example, in the generated `vite-react19` directory run:
+
+```bash
+npm run start -- --port 4173
+```
+
+Open `http://127.0.0.1:4173` and stop the server with Ctrl+C when finished. The generated Next
+consumers accept the same command. These servers bind localhost; physical-device testing requires
+a separately configured device-reachable server.
+
+The [shared example](./shared/Example.tsx) contains default selection controls, a frozen Name column,
+offscreen focus, built-in editing, a custom Status editor, initial loading, refresh and empty results.
+It does not include the complete [manual accessibility matrix](../docs/ACCESSIBILITY.md).
+Make persistent fixture changes in `shared/Example.tsx` before rerunning the workflow; edits in an
+OS temporary directory are disposable. Extending the scenario does not itself establish support.
 
 ## Editing shared examples locally
 

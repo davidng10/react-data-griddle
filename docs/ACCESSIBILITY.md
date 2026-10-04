@@ -102,8 +102,9 @@ Default checkboxes are 16px controls inside labels covering their gutter cell (4
 
 Keep frozen widths plus gutter below container width, leaving useful center space. The grid never
 silently unpins consumer columns. Use container-aware column props for narrow layouts/orientation.
-The `/integration` example uses 44px rows; below 640px it narrows Name to 120px and unpins Status.
-Test both frozen bands at wider widths and transitions with an active editor/selection.
+For example, a consumer can use 44px rows and narrow or unpin columns below a chosen container
+width. This responsive scenario is not included in the basic app or packed fixture. Test both
+frozen bands at wider widths and transitions with an active editor/selection.
 
 **Pen scope:** pen-driven grid drag manipulation is excluded from the current preview implementation
 and is not a support claim. Native controls can receive pen activation. Decide and verify dedicated
@@ -124,7 +125,28 @@ observed result and pass/fail for each entry. No minimum supported versions are 
 | Physical Android Chrome | All mobile steps; TalkBack                         | Unverified                                            |
 | Windows forced colors   | Focus, selection, controls, errors and editing     | CSS implemented; manual verification pending          |
 
-Desktop steps (use `/integration`, `/styling` and `/loading`):
+### Prepare a manual test consumer
+
+Run `pnpm dev` and open `/` for basic navigation, native selection and text editing. For a broader
+starting point, use the [packed-consumer workflow](./PACKAGE_VERIFICATION.md) and
+[manual fixture instructions](../fixtures/README.md#running-a-generated-consumer-manually).
+Its shared example includes a frozen Name column, offscreen focus buttons, native checkboxes,
+a custom Status editor, initial loading, a refresh toggle and an empty-results button.
+
+The former integration, styling and loading demo routes are removed. Neither the basic app nor the
+packed example covers this entire matrix. Before testing, add the required scenarios to a consumer
+using public APIs: both frozen bands and horizontal overflow, custom/mixed/read-only controls,
+action/reorder barriers, native select and validation, delayed/rejected commits with accessible
+feedback, row/column removal and reversal, multiple themes/grids, nested scrolling, responsive
+unpinning and long editor content. The [integration](./INTEGRATION.md), [styling](./STYLING.md) and
+[loading](./LOADING.md) guides describe the contracts to use.
+
+Record the consumer revision/configuration with each result. Mark a scenario blocked when its
+fixture or required interaction is missing; do not count the basic app smoke check as a matrix pass.
+Physical-device testing also requires serving the consumer at a device-reachable address; the
+automated runner binds localhost and its Chromium checks do not satisfy physical-device testing.
+
+### Desktop steps
 
 1. Tab from outside into/out of the grid in both directions. Check visible focus before any cell
    selection. Exercise every key above, empty data, all-nonselectable columns, first/last cells,

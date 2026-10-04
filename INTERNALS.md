@@ -16,8 +16,10 @@ packages/data-griddle/src/editors/                   portal host and built-in ed
 packages/data-griddle/src/internal/                  shared layout, styling, and utility code
 ```
 
-`apps/docs/examples` contains interactive public-API examples. `fixtures` contains isolated
-packed consumers. Neither is part of the published component.
+`apps/docs/examples/BasicExample.tsx` supplies the single editable grid at `/`; the app does not
+render the repository guides. `fixtures/shared/Example.tsx` supplies public-API scenarios copied
+into isolated packed consumers. Neither example is part of the published component. Read the
+[package verification guide](./docs/PACKAGE_VERIFICATION.md) for scope and reproduction commands.
 
 ## Rendering model
 

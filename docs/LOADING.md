@@ -25,5 +25,8 @@ The application owns fetching. Pass `loading` explicitly and retain previous row
 Keep custom indicators noninteractive. Loading pauses editing and pointer gestures without discarding
 drafts. Pending commits may settle. The grid never fetches data or infers loading from an empty array.
 
-The inline example covers initial loading, refresh, empty results, custom indicators and background
-refresh while editing. Physical mobile and assistive-technology verification remain outstanding.
+The [packed-consumer example](../fixtures/shared/Example.tsx) includes an initial-loading grid, a
+refresh toggle and an empty-results button. Run the [consumer checks](./PACKAGE_VERIFICATION.md)
+for those scenarios. Custom indicators and delayed background refresh while editing need additional
+consumer setup; they are not controls in the basic local app. Physical mobile and
+assistive-technology verification remain outstanding.

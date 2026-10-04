@@ -40,7 +40,7 @@ columns. Tokens do not calculate contrast automatically.
 | Token                              | Default                                                      | Purpose                                                         |
 | ---------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------- |
 | `--dgr-background`                 | `#fff`                                                       | Frame, body, cells, pending values                              |
-| `--dgr-border-radius`              | `4px`                                                        | Outer frame corner radius                                      |
+| `--dgr-border-radius`              | `4px`                                                        | Outer frame corner radius                                       |
 | `--dgr-text-color`                 | `#1c1917`                                                    | Text; draft notice fallback is `#44403c`                        |
 | `--dgr-font-family`                | `system-ui, sans-serif`                                      | Grid and editor typography                                      |
 | `--dgr-font-size`                  | `13px`                                                       | Grid and editor type size                                       |
@@ -162,10 +162,12 @@ host to avoid outside-click commits. A custom control can use inherited tokens a
 
 ## Examples
 
-Run `pnpm dev` and visit `/styling` for independent day/night grids, conditional frozen and center
-cells, density/type controls, initial/refresh/empty states, delayed or failed saves, a custom Status
-editor, and timed theme/override changes during editing. The docs apply no global reset to grid descendants. Separate packed consumers verify library
-styles without docs styles; see [package verification](./PACKAGE_VERIFICATION.md).
+Use the token and conditional-class snippets above in your consumer application. The local app
+started by `pnpm dev` contains one basic grid at `/`; it has no theme showcase.
+The [packed-consumer example](../fixtures/shared/Example.tsx) exercises default styles, a frozen
+column and a custom Status editor without development-app styles; see
+[package verification](./PACKAGE_VERIFICATION.md). Testing independent light/dark grids, density
+changes and theme updates during editing requires a dedicated consumer scenario.
 
 Accessibility, physical mobile and the full browser matrix remain release verification gaps.
 

@@ -166,8 +166,8 @@ colors through CSS variables on the frame:
 }
 ```
 
-Run the docs app and open `/loading` to exercise initial load, refresh, empty results, custom
-indicators, and a delayed background refresh while editing.
+The packed-consumer fixture exercises initial loading, refresh and empty results. Custom indicators
+and delayed refresh while editing need a dedicated consumer scenario; the local app is a basic grid.
 
 ## Column behavior
 
@@ -206,10 +206,10 @@ each side small for large grids.
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm dev              # library watch + Next.js docs
+pnpm dev              # library watch + single-grid Next.js app
 pnpm test             # source regressions
-pnpm lint             # ESLint + library/docs types
-pnpm build            # ESM library + prerendered docs
+pnpm lint             # ESLint + library/app/fixture types
+pnpm build            # ESM library + static single-grid app
 pnpm check:package    # build + artifact contract
 pnpm exec playwright install chromium
 pnpm check:consumers  # real tarballs in isolated Vite/Next consumers
@@ -225,13 +225,15 @@ grid's theme. Columns accept `cellClassName` and `headerClassName` as strings or
 Use `rowHeight` and column widths for geometry; CSS controls appearance.
 
 See the [styling contract](./docs/STYLING.md) for tokens, defaults, parts, callback contexts, and
-portal synchronization limits. `/styling` demonstrates two independent themes without a global application reset.
+portal synchronization limits. The guide includes theme and conditional-class examples; the local
+app does not include an interactive theme showcase.
 
 ## Integration APIs
 
 See the [integration guide](./docs/INTEGRATION.md) for controlled/uncontrolled/read-only state,
 stable identity, editing and persistence, custom selection controls, and the `DataGridHandle.focusCell`
-command. Run `pnpm dev` and open `/integration` for focused examples using only the public entry.
+command. Run `pnpm dev` and open `/` for the basic editable grid. Packed-consumer fixtures cover
+additional public-API scenarios; their setup and coverage are described in the verification guide below.
 
 Stores and geometry helpers remain private. See [package verification](./docs/PACKAGE_VERIFICATION.md)
 for exact tested versions and remaining limitations.
@@ -241,16 +243,17 @@ for exact tested versions and remaining limitations.
 See [keyboard, touch and accessibility guidance](./docs/ACCESSIBILITY.md) for navigation, native control
 tab order, editor behavior, remaining touch/column interaction gaps and the manual test matrix.
 Source semantics and keyboard navigation are implemented; target-browser, physical-device and
-screen-reader support remains unverified. The `/integration` example adapts frozen columns to narrow containers.
+screen-reader support remains unverified. Applications must adapt frozen widths and columns to
+narrow containers; the basic app does not demonstrate responsive unpinning.
 
 ## Workspace and releases
 
 - `packages/data-griddle/`: canonical source, styles, tests, ESM build and declarations.
-- `apps/docs/`: Next.js App Router docs, server-rendered guides and inline interactive examples.
+- `apps/docs/`: a single-grid Next.js App Router development app.
 - `fixtures/`: isolated packed consumers, copied outside the workspace by verification scripts.
-- `docs/`: canonical guides consumed by the docs app.
+- `docs/`: repository guides, read directly as Markdown.
 
-The docs app consumes only public package exports. `pnpm dev` builds the library first and watches
+The development app consumes only public package exports. `pnpm dev` builds the library first and watches
 it alongside Next.js; restart it after changing the public export map. No Turborepo or Nx is needed.
 
 One package will support future stable and experimental npm tags. Tags, versions and Git branches

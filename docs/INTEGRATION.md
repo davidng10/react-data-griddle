@@ -290,11 +290,13 @@ frame's theme. It must:
 - Use context callbacks rather than internal stores. They respect loading and current row identity.
   Keep the draft in `ctx.draft` so a suspended editor or missing target does not lose it.
 
-Run `pnpm dev` and open `/integration` for the [runnable example](../apps/docs/examples/IntegrationExample.tsx):
-custom/native controls, controlled/read-only selection, offscreen and frozen focus, row reversal and a
-nested status popup. Unit integration tests exercise popup selection without an accidental commit.
-Other browser engines, physical mobile devices and assistive technology remain unverified.
-Packed React/Next checks are recorded separately in [package verification](./PACKAGE_VERIFICATION.md).
+Run `pnpm dev` and open `/` for the [basic editable grid](../apps/docs/examples/BasicExample.tsx).
+The [packed-consumer example](../fixtures/shared/Example.tsx) adds offscreen focus, a frozen column,
+native row-selection controls, loading/empty states and a nested Status editor. Run it through the
+[consumer verification workflow](./PACKAGE_VERIFICATION.md). Custom checkboxes, controlled/read-only
+selection and row reversal need additional consumer setup; the former integration demo is removed.
+Source integration tests also exercise popup selection without an accidental commit. Other browser
+engines, physical mobile devices and assistive technology remain unverified.
 
 ## Accessibility and input integration
 
