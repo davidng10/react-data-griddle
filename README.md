@@ -18,7 +18,7 @@ selection, editing, and pointer interactions off the main cell-rendering path.
 - Stable-ID imperative cell focus
 - Synchronous validation and asynchronous commits
 - Within-zone column reordering
-- Column resizing with optional persistence callbacks
+- Mouse and touch column resizing with optional persistence callbacks
 
 ## Usage
 

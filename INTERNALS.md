@@ -208,6 +208,12 @@ release/cancel path on the scroller. Listener/timer/animation-frame cleanup cove
 cancellation and unmount. Committed handler refs avoid stale geometry in native events. Do not
 switch touch-action after activation: browsers decide that policy when contact begins.
 
-No built-in actions panel is rendered. Touch edit entry and keyboard/touch column actions remain
-unimplemented; touch header dragging is currently absent. Physical-device verification is separate
+Touch column resizing uses the existing pointer resize guide and commits once on release. Only
+actual resize handles claim touch input, with `touch-action: none` set before contact. CSS widens
+each handle from 5px to 12px for coarse pointers; hit testing reads its rendered width at pointerdown.
+The rest of the header retains native scrolling. The shell's existing cancellation paths discard
+the preview without a width commit.
+
+No built-in actions panel is rendered. Touch edit entry, keyboard resizing and keyboard/touch
+reordering remain unimplemented. Physical-device verification is separate
 from the source and Chromium touch-input regressions.

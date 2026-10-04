@@ -103,6 +103,10 @@ Selection states live on overlays, not every cell. Do not reveal `.dgr-status-te
 interaction blocking. Loading's existing reduced-motion choice is unchanged: initial bars pulse
 and the spinner rotates even when reduced motion is requested; scrolling fallback bars stay static.
 
+Resize handles reserve touch dragging with `touch-action: none`. Their internal hit width grows
+from 5px to 12px on coarse-pointer devices; preserve this policy to keep resizing separate from
+native header scrolling.
+
 ## Conditional classes
 
 ```tsx

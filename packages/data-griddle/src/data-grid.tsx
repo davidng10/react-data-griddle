@@ -574,8 +574,11 @@ function DataGridInner<T>(
           )
             return;
           capturedPointerRef.current = event.pointerId;
-          if (event.pointerType === "touch") dragSel.onPointerDown(event);
-          else onPointerDown(event);
+          if (event.pointerType === "touch") {
+            // Only actual resize handles reserve touch scrolling. Other header touches
+            // remain native; touch column reordering is not enabled here.
+            if (!colResize.onPointerDown(event)) dragSel.onPointerDown(event);
+          } else onPointerDown(event);
         }}
         onPointerMove={(event) => {
           if (capturedPointerRef.current === event.pointerId)

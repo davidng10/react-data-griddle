@@ -1,6 +1,7 @@
 # Accessibility and interaction
 
-Data Griddle's source implementation includes grid semantics, keyboard navigation and touch tap/scroll and hold-to-select handling. Browser,
+Data Griddle's source implementation includes grid semantics, keyboard navigation, touch tap/scroll,
+hold-to-select and touch column resizing. Browser,
 physical-device and screen-reader compatibility is **not yet verified**. The first release remains
 blocked on the manual matrix below. Automated tests and a browser accessibility tree do not establish
 screen-reader usability.
@@ -87,7 +88,7 @@ save/cancel controls and focus. Test them independently, including with the on-s
 
 ## Touch and narrow layouts
 
-Swipe immediately on cells or headers to scroll normally. A short tap within 8px without scrolling
+Swipe immediately on cells or headers outside resize handles to scroll normally. A short tap within 8px without scrolling
 focuses a cell; repeated taps do not implicitly edit. Native/custom controls retain their normal
 activation and scrolling behavior.
 
@@ -105,10 +106,17 @@ retains the last range unless another operation clears or reconciles it (for exa
 removal). Native browser menus are suppressed during the claimed cell hold; controls keep theirs.
 If the browser has already taken over scrolling, the grid abandons selection instead of fighting it.
 
-**Implementation gaps (2026-10-04):** touch entry into editing and keyboard/touch column
-resizing/reordering still need direct interactions. Normal touch header dragging does not
-resize/reorder. Hold-to-select is implemented, but physical iOS/Android and assistive-technology
-verification remain outstanding. Run `pnpm check:touch` against a running `pnpm dev` app for the
+Drag a column-edge handle to resize immediately, without holding. A guide previews the width;
+lifting commits once within the column's minimum/maximum limits. On coarse-pointer devices each
+handle has a 12px invisible hit area inside the header. Only these handles reserve touch dragging;
+the rest of the header permits native scrolling. Cancellation, lost capture, another contact,
+Escape, loading, source identity changes, window blur or resize discard the preview. Read-only
+widths and non-resizable/action columns do not expose resize handles.
+
+**Implementation gaps (2026-10-04):** touch entry into editing, keyboard column resizing and
+keyboard/touch column reordering still need direct interactions. Hold-to-select and touch resizing
+are implemented, but physical iOS/Android and assistive-technology verification remain outstanding.
+Run `pnpm check:touch` against a running `pnpm dev` app for the
 Chromium touch-input smoke check; an optional URL selects a served production export, for example
 `pnpm check:touch http://127.0.0.1:8080`. This is browser emulation, not physical-device evidence.
 
@@ -203,9 +211,11 @@ Physical mobile steps (desktop viewport emulation does not satisfy these):
    and immediately pan normally. Repeat with pointercancel, lost capture, a second finger both inside
    and outside the grid, app switch, loading, data changes and orientation changes. No stuck capture,
    continuing scroll loop, accidental editor or resize/reorder commit is acceptable.
-4. **Blocked until touch column actions are implemented:** resize/move to limits/barriers and cancel
-   mid-interaction without committing. Move an offscreen center column through repeated actions;
-   confirm it scrolls into view. Repeat with controlled read-only state and action columns.
+4. Drag resize handles on both sides of boundaries and in frozen bands. Resize to limits and cancel
+   mid-interaction without committing. Confirm header swipes outside handles still scroll. Repeat
+   with controlled read-only state and action columns. **Touch reordering remains blocked:** move
+   to barriers and move an offscreen center column through repeated actions; confirm it scrolls
+   into view.
 5. Test 320–430px portrait widths, landscape, device rotation, large fonts, both frozen bands and
    responsive unpinning. With AT active, use touch exploration and gesture navigation to complete
    selection, editing and column actions. Record usability findings, not only attribute inspection.

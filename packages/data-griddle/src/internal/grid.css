@@ -63,10 +63,19 @@
   text-overflow: ellipsis;
 }
 .dgr-header-cell > [data-resize-handle] {
+  width: 5px;
+  touch-action: none;
+  -webkit-touch-callout: none;
   position: absolute;
   top: 0;
   cursor: col-resize;
   z-index: 1;
+}
+/* Wider invisible targets for fingers; geometry reads their width at pointerdown. */
+@media (any-pointer: coarse) {
+  .dgr-header-cell > [data-resize-handle] {
+    width: 12px;
+  }
 }
 .dgr-header-cell > [data-resize-handle="left"] {
   left: 0;

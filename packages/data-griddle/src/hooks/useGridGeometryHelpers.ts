@@ -21,7 +21,8 @@ export interface GridGeometryHelpers<T> {
   /** Map a point near a header's right edge to its resize handle. */
   headerResizeHitTest: (
     clientX: number,
-    clientY: number
+    clientY: number,
+    handleWidth?: number
   ) => {
     columnId: ColumnId;
     zone: Zone;
@@ -159,7 +160,11 @@ export function useGridGeometryHelpers<T>(args: {
 
   // A resize boundary belongs to the column on its left. Action and non-resizable columns are
   // excluded.
-  const headerResizeHitTest = (clientX: number, clientY: number) => {
+  const headerResizeHitTest = (
+    clientX: number,
+    clientY: number,
+    handleWidth = RESIZE_HANDLE_WIDTH
+  ) => {
     const el = scrollRef.current;
     if (!el || columnOrder.length === 0) return null;
     const rect = el.getBoundingClientRect();
@@ -179,7 +184,7 @@ export function useGridGeometryHelpers<T>(args: {
       for (const c of [i, i - 1]) {
         if (c < 0 || c >= cols.length) continue;
         const boundaryX = zl.offsets[c] + zl.widths[c];
-        if (Math.abs(zoneX - boundaryX) <= RESIZE_HANDLE_WIDTH) {
+        if (Math.abs(zoneX - boundaryX) <= handleWidth) {
           const col = cols[c];
           if (!col || !resolveColumnCapabilities(col).resizable) return null;
           return {
@@ -198,7 +203,7 @@ export function useGridGeometryHelpers<T>(args: {
 
     // Frozen zones render above the scrolling center. At their exact seams `resolveZone` assigns
     // the point to the zone on the other side, so give the visible boundary first refusal.
-    if (left.total > 0 && Math.abs(localX - leftBand) <= RESIZE_HANDLE_WIDTH) {
+    if (left.total > 0 && Math.abs(localX - leftBand) <= handleWidth) {
       const hit = hitInZone("left", zones.left, left, localX - gutterW);
       if (hit) return hit;
     }
@@ -207,7 +212,7 @@ export function useGridGeometryHelpers<T>(args: {
     if (
       right.total > 0 &&
       zones.center.length > 0 &&
-      Math.abs(localX - rightBand) <= RESIZE_HANDLE_WIDTH
+      Math.abs(localX - rightBand) <= handleWidth
     ) {
       const hit = hitInZone(
         "center",

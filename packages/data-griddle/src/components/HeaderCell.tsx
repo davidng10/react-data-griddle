@@ -1,7 +1,6 @@
 import { memo } from "react";
 
 import { classNames } from "../internal/class-names";
-import { RESIZE_HANDLE_WIDTH } from "../internal/constants";
 
 import type { ReactNode } from "react";
 import type { FrozenZone } from "../core/types";
@@ -48,24 +47,20 @@ export const HeaderCell = memo(function HeaderCell(props: {
       }}
     >
       {content}
-      {/* These are hover affordances only; the container hit-tests symmetrically around the
-          boundary and keeps resize ownership with the column on its left. */}
+      {/* Handles reserve touch dragging before contact. The container keeps ownership
+          with the column on the left and hit-tests using the rendered handle width. */}
       {resizeFromLeft && (
         <div
           data-resize-handle="left"
-          style={{
-            width: RESIZE_HANDLE_WIDTH,
-            height,
-          }}
+          onContextMenu={(event) => event.preventDefault()}
+          style={{ height }}
         />
       )}
       {resizable && (
         <div
           data-resize-handle="right"
-          style={{
-            width: RESIZE_HANDLE_WIDTH,
-            height,
-          }}
+          onContextMenu={(event) => event.preventDefault()}
+          style={{ height }}
         />
       )}
     </div>

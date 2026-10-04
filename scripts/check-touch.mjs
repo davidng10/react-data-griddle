@@ -85,9 +85,62 @@ try {
     stopped,
     "cancellation stops edge auto-scroll"
   );
+  // Resizing claims only the widened edge handles, never the rest of the header.
+  await page.reload();
+  await grid.getByRole("gridcell").first().waitFor();
+  const header = grid.getByRole("columnheader", { name: "Name", exact: true });
+  const handle = header.locator('[data-resize-handle="right"]');
+  const width = () => header.evaluate((el) => el.getBoundingClientRect().width);
+  const originalWidth = await width();
+  let handleBox = await handle.boundingBox();
+  assert(
+    handleBox && handleBox.width >= 12,
+    "coarse-pointer handles have a wider hit area"
+  );
+  const handleX = handleBox.x + handleBox.width / 2;
+  const handleY = handleBox.y + handleBox.height / 2;
+  await touch("touchStart", handleX, handleY);
+  await touch("touchMove", handleX + 50, handleY);
+  await expect(grid.locator(".dgr-resize-indicator")).toHaveCount(1);
+  assert.equal(
+    await width(),
+    originalWidth,
+    "touch movement only previews a guide"
+  );
+  assert.equal(await scrollTop(), 0, "resize does not pan the grid");
+  await touch("touchEnd");
+  await expect.poll(width).toBe(originalWidth + 50);
+  await expect(grid.locator(".dgr-resize-indicator")).toHaveCount(0);
+  await page.screenshot({ path: join(evidence, "touch-resize.png") });
+
+  handleBox = await handle.boundingBox();
+  assert(handleBox);
+  await touch("touchStart", handleBox.x + 2, handleY);
+  await touch("touchMove", handleBox.x - 40, handleY);
+  await touch("touchCancel");
+  await expect(grid.locator(".dgr-resize-indicator")).toHaveCount(0);
+  assert.equal(
+    await width(),
+    originalWidth + 50,
+    "interrupted resize does not commit"
+  );
+
+  await touch("touchStart", box.x + 180, handleY);
+  for (let step = 1; step <= 5; step++) {
+    await touch("touchMove", box.x + 180 - 20 * step, handleY);
+  }
+  await touch("touchEnd");
+  await expect
+    .poll(() => grid.evaluate((el) => el.scrollLeft))
+    .toBeGreaterThan(0);
+  assert.equal(
+    await width(),
+    originalWidth + 50,
+    "ordinary header swipe scrolls without resizing"
+  );
   assert.deepEqual(errors, []);
   console.log(
-    `Chromium touch hold, drag, release, native swipe and edge-scroll cancellation passed. Screenshots: ${evidence}`
+    `Chromium touch range, native scrolling, edge-scroll cancellation and column resizing passed. Screenshots: ${evidence}`
   );
 } finally {
   await browser.close();

@@ -1,6 +1,6 @@
 import { useRef } from "react";
 
-import { MIN_COL_WIDTH } from "../internal/constants";
+import { MIN_COL_WIDTH, RESIZE_HANDLE_WIDTH } from "../internal/constants";
 import { clampNum } from "../internal/layout";
 
 import type { PointerEvent as ReactPointerEvent, RefObject } from "react";
@@ -52,7 +52,18 @@ export function useColumnResize<T>(args: {
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>): boolean => {
     // Feature off ⇒ no gesture, no handle affordance.
     if (!enabled) return false;
-    const hit = headerResizeHitTest(e.clientX, e.clientY);
+    const handle =
+      e.target instanceof Element
+        ? e.target.closest<HTMLElement>("[data-resize-handle]")
+        : null;
+    // The handle's touch-action policy is established before contact. A geometric
+    // hit elsewhere must not claim a touch the browser is free to use for panning.
+    if (e.pointerType === "touch" && !handle) return false;
+    const hit = headerResizeHitTest(
+      e.clientX,
+      e.clientY,
+      handle?.getBoundingClientRect().width || RESIZE_HANDLE_WIDTH
+    );
     if (!hit) return false;
 
     const col = zoneColsFor(hit.zone)[hit.localIndex];
