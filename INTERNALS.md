@@ -214,6 +214,19 @@ each handle from 5px to 12px for coarse pointers; hit testing reads its rendered
 The rest of the header retains native scrolling. The shell's existing cancellation paths discard
 the preview without a width commit.
 
-No built-in actions panel is rendered. Touch edit entry, keyboard resizing and keyboard/touch
+Double-tap editing records the first completed tap in a ref. The next press consumes that record;
+it qualifies only on the same cell within 300 ms and 24px. Swipe/hold/cancel paths cannot seed a new
+pair, and scrolling or intervening input clears it. A valid second release calls the existing
+`beginEdit` through `flushSync` so the editor mounts and focuses within the user gesture. Cell
+`touch-action: manipulation` reserves double-tap while retaining native pan/pinch. Recognition
+does not subscribe cells to gesture state or rerender their contents.
+The scroller also has a non-passive native `touchend` listener that prevents the default only for
+completed single-finger cell taps. This supplements `touch-action: manipulation` on Safari versions
+that still recognize double-tap zoom. It supports either release-event order; interrupted gestures,
+swipes, holds, pinches and embedded controls do not claim the touch end.
+Built-in text/select editors focus with `preventScroll: true` so native focus does not compete
+with portal placement. Typography continues to inherit the grid font, without a mobile size floor.
+
+No built-in actions panel is rendered. Keyboard resizing and keyboard/touch
 reordering remain unimplemented. Physical-device verification is separate
 from the source and Chromium touch-input regressions.

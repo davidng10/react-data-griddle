@@ -389,8 +389,10 @@ function DataGridInner<T>(
       scrollRef.current.releasePointerCapture(pointer);
   };
   const cancelGesturesRef = useRef(cancelGestures);
+  const resetTouchTapRef = useRef(dragSel.resetTouchTap);
   useLayoutEffect(() => {
     cancelGesturesRef.current = cancelGestures;
+    resetTouchTapRef.current = dragSel.resetTouchTap;
   });
   const gestureInputs = useRef({
     rowIds,
@@ -444,11 +446,16 @@ function DataGridInner<T>(
         capturedPointerRef.current != null &&
         event.pointerId !== capturedPointerRef.current
       ) {
-        cancelGestures();
+        cancelGesturesRef.current();
+      } else if (
+        event.target instanceof Node &&
+        !scrollRef.current?.contains(event.target)
+      ) {
+        resetTouchTapRef.current();
       }
     };
     const onBlur = () => {
-      cancelGestures();
+      cancelGesturesRef.current();
     };
     document.addEventListener("pointerdown", onAdditionalPointer, true);
     window.addEventListener("blur", onBlur);
@@ -458,7 +465,7 @@ function DataGridInner<T>(
       window.removeEventListener("blur", onBlur);
       window.removeEventListener("resize", onBlur);
     };
-  });
+  }, []);
 
   const blockWhileLoading = (event: SyntheticEvent) => {
     if (!loading) return;
@@ -565,20 +572,29 @@ function DataGridInner<T>(
             cancelGestures();
             return;
           }
-          if (event.button !== 0 || event.pointerType === "pen") return;
+          if (event.button !== 0 || event.pointerType === "pen") {
+            dragSel.resetTouchTap();
+            return;
+          }
           if (
             event.target instanceof Element &&
             event.target.closest(
               'button, input, select, textarea, a, [contenteditable="true"], [role="button"], [role="checkbox"]'
             )
-          )
+          ) {
+            dragSel.resetTouchTap();
             return;
+          }
           capturedPointerRef.current = event.pointerId;
           if (event.pointerType === "touch") {
             // Only actual resize handles reserve touch scrolling. Other header touches
             // remain native; touch column reordering is not enabled here.
             if (!colResize.onPointerDown(event)) dragSel.onPointerDown(event);
-          } else onPointerDown(event);
+            else dragSel.resetTouchTap();
+          } else {
+            dragSel.resetTouchTap();
+            onPointerDown(event);
+          }
         }}
         onPointerMove={(event) => {
           if (capturedPointerRef.current === event.pointerId)
@@ -620,6 +636,7 @@ function DataGridInner<T>(
           }
         }}
         onKeyDown={(event) => {
+          dragSel.resetTouchTap();
           if (event.key === "Escape") {
             cancelGestures();
           }

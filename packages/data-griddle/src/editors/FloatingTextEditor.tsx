@@ -39,7 +39,8 @@ export function FloatingTextEditor(props: {
   useLayoutEffect(() => {
     const ta = ref.current;
     if (!ta) return;
-    ta.focus();
+    // The portal owns viewport placement; avoid native focus scrolling/zooming.
+    ta.focus({ preventScroll: true });
     ta.select();
   }, []);
 
@@ -120,6 +121,10 @@ export function NativeSelectEditor(props: {
   onEscape: () => void;
 }) {
   const { api, width, options } = props;
+  const ref = useRef<HTMLSelectElement | null>(null);
+  useLayoutEffect(() => {
+    ref.current?.focus({ preventScroll: true });
+  }, []);
   const errorId = useId();
   const value = api.draft == null ? "" : String(api.draft);
   // Borderless/transparent — fills the grid-owned host panel.
@@ -130,7 +135,7 @@ export function NativeSelectEditor(props: {
         aria-label={props.label}
         aria-invalid={api.status === "error" || undefined}
         aria-describedby={api.status === "error" ? errorId : undefined}
-        autoFocus
+        ref={ref}
         value={value}
         onChange={(e) => {
           api.setDraft(e.target.value);

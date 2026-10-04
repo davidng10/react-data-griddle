@@ -9,6 +9,7 @@ selection, editing, and pointer interactions off the main cell-rendering path.
 - Left and right frozen columns
 - Cell focus, range selection, and checkbox row selection
 - Touch hold-and-drag range selection with edge scrolling
+- Touch double-tap entry into cell editing
 - Keyboard navigation and type-to-edit
 - Custom cell, header, editor, and selection-checkbox renderers
 - Stable-ID imperative cell focus

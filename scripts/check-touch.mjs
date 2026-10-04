@@ -138,9 +138,89 @@ try {
     originalWidth + 50,
     "ordinary header swipe scrolls without resizing"
   );
+
+  // Browser-generated taps must open/focus an editor, without a compatibility click closing it.
+  await page.reload();
+  await grid.getByRole("gridcell").first().waitFor();
+  const editY = box.y + 48;
+  const tap = async () => {
+    await touch("touchStart", x, editY);
+    await touch("touchEnd");
+  };
+  const editor = page.getByRole("textbox", { name: "Name, row 1" });
+  const scale = await page.evaluate(() => window.visualViewport?.scale);
+  await tap();
+  await expect(editor).toHaveCount(0);
+  await tap();
+  await expect(editor).toBeFocused();
+  await expect(editor).toHaveValue("Ada Chen");
+  // Typography stays consumer-owned, including fonts smaller than 16px.
+  await expect(editor).toHaveCSS("font-size", "13px");
+  const frame = page.locator(".dgr-root");
+  await frame.evaluate((el) => el.style.setProperty("font-size", "20px"));
+  await expect(editor).toHaveCSS("font-size", "20px");
+  await frame.evaluate((el) => el.style.setProperty("font-size", "12px"));
+  await expect(editor).toHaveCSS("font-size", "12px");
+  await frame.evaluate((el) => el.style.removeProperty("font-size"));
+  assert.equal(
+    await page.evaluate(() => window.visualViewport?.scale),
+    scale,
+    "editing does not double-tap zoom"
+  );
+  await editor.fill("Ada Touch");
+  await page.screenshot({ path: join(evidence, "touch-editor.png") });
+  await page.getByRole("button", { name: "Save edit" }).tap();
+  await expect(editor).toHaveCount(0);
+  await expect(
+    grid.getByRole("gridcell", { name: "Ada Touch", exact: true })
+  ).toHaveCount(1);
+  await tap();
+  await expect(editor).toHaveCount(0);
+  await tap();
+  await expect(editor).toBeFocused();
+  await editor.fill("Discard this");
+  await page.getByRole("button", { name: "Cancel edit" }).tap();
+  await expect(editor).toHaveCount(0);
+  await expect(
+    grid.getByRole("gridcell", { name: "Ada Touch", exact: true })
+  ).toHaveCount(1);
+  // Exercise real browser touch events at non-default page scales. Observing defaultPrevented
+  // verifies the native guard that supplements Safari's touch-action handling.
+  await page.evaluate(() => {
+    window.cellTouchEnds = [];
+    document.addEventListener("touchend", (event) => {
+      if (event.target.closest?.(".dgr-cell"))
+        window.cellTouchEnds.push(event.defaultPrevented);
+    });
+  });
+  for (const zoom of [2, 3]) {
+    await cdp.send("Emulation.setPageScaleFactor", { pageScaleFactor: zoom });
+    await tap();
+    await expect(editor).toHaveCount(0);
+    await tap();
+    await expect(editor).toBeFocused();
+    assert.equal(await page.evaluate(() => window.visualViewport.scale), zoom);
+    await page.getByRole("button", { name: "Cancel edit" }).tap();
+    await expect(editor).toHaveCount(0);
+  }
+  assert.deepEqual(await page.evaluate(() => window.cellTouchEnds), [
+    true,
+    true,
+    true,
+    true,
+  ]);
+  await cdp.send("Emulation.setPageScaleFactor", { pageScaleFactor: 1 });
   assert.deepEqual(errors, []);
+  const desktop = await browser.newPage();
+  await desktop.goto(url);
+  const desktopGrid = desktop.getByRole("grid", { name: "People example" });
+  await desktopGrid.getByRole("gridcell").first().waitFor();
+  await desktopGrid.focus();
+  await desktopGrid.press("Enter");
+  await expect(desktop.getByRole("textbox")).toHaveCSS("font-size", "13px");
+  await desktop.close();
   console.log(
-    `Chromium touch range, native scrolling, edge-scroll cancellation and column resizing passed. Screenshots: ${evidence}`
+    `Chromium touch range, native scrolling, edge-scroll cancellation, column resizing and double-tap editing passed. Screenshots: ${evidence}`
   );
 } finally {
   await browser.close();

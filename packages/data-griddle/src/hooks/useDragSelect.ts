@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { flushSync } from "react-dom";
 
 import { edgeScrollDelta } from "../internal/auto-scroll";
 import { useIsomorphicLayoutEffect as useLayoutEffect } from "../internal/use-isomorphic-layout-effect";
@@ -14,6 +15,8 @@ export interface DragSelectHandlers {
   onPointerMove: (e: ReactPointerEvent<HTMLDivElement>) => void;
   onPointerUp: (e: ReactPointerEvent<HTMLDivElement>) => void;
   onLostPointerCapture: () => void;
+  /** Other input breaks a pending double-tap without changing selection. */
+  resetTouchTap: () => void;
   /** Includes a claimed press before the visual gesture starts. */
   isActive: () => boolean;
 }
@@ -38,8 +41,16 @@ export function useDragSelect<T>(args: {
     scrollTop: number;
     scrollLeft: number;
     cell: CellCoord;
+    secondTap: boolean;
+  } | null>(null);
+  const lastTouchTapRef = useRef<{
+    cell: CellCoord;
+    x: number;
+    y: number;
+    time: number;
   } | null>(null);
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const completedTouchTapRef = useRef(false);
   const touchRangeRef = useRef(false);
   const touchListenersRef = useRef<{
     target: EventTarget;
@@ -111,7 +122,15 @@ export function useDragSelect<T>(args: {
     tapRef.current = null;
   };
 
+  const resetTouchTap = () => {
+    lastTouchTapRef.current = null;
+    completedTouchTapRef.current = false;
+    if (tapRef.current) tapRef.current.secondTap = false;
+  };
+
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const previousTap = lastTouchTapRef.current;
+    resetTouchTap(); // Each new press consumes the previous tap, even if it becomes a swipe/hold.
     const cell = hitTest(e.clientX, e.clientY);
     if (!cell) return; // header / gutter / outside — let native handlers (e.g. checkboxes) run
     if (e.pointerType === "touch") {
@@ -133,6 +152,13 @@ export function useDragSelect<T>(args: {
         scrollTop: scrollRef.current?.scrollTop ?? 0,
         scrollLeft: scrollRef.current?.scrollLeft ?? 0,
         cell,
+        secondTap: Boolean(
+          previousTap &&
+          Date.now() - previousTap.time <= 300 &&
+          previousTap.cell.rowIndex === cell.rowIndex &&
+          previousTap.cell.columnId === cell.columnId &&
+          Math.hypot(e.clientX - previousTap.x, e.clientY - previousTap.y) <= 24
+        ),
       };
       holdTimerRef.current = setTimeout(() => {
         holdTimerRef.current = null;
@@ -210,6 +236,7 @@ export function useDragSelect<T>(args: {
 
   const onPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
     const tap = tapRef.current;
+    let touchEditCell: CellCoord | null = null;
     clearTap();
     if (
       tap &&
@@ -219,10 +246,24 @@ export function useDragSelect<T>(args: {
     ) {
       store.focusCell(tap.cell);
       scrollRef.current?.focus({ preventScroll: true });
+      completedTouchTapRef.current = true;
+      if (tap.secondTap) touchEditCell = tap.cell;
+      else
+        lastTouchTapRef.current = {
+          cell: tap.cell,
+          x: e.clientX,
+          y: e.clientY,
+          time: Date.now(),
+        };
     }
     stopDrag();
     if (scrollRef.current?.hasPointerCapture(e.pointerId))
       scrollRef.current.releasePointerCapture(e.pointerId);
+    if (touchEditCell) {
+      // Mount/focus the editor within the touch release, preserving the user activation
+      // needed by mobile keyboards. No timer or cell render participates in recognition.
+      flushSync(() => beginEdit(touchEditCell));
+    }
     // A click (no drag) on the already-focused cell enters edit mode.
     const editCell = pendingEditRef.current;
     pendingEditRef.current = null;
@@ -244,6 +285,7 @@ export function useDragSelect<T>(args: {
   const onLostPointerCapture = () => {
     stopDrag();
     clearTap();
+    resetTouchTap();
     pendingEditRef.current = null;
   };
 
@@ -268,21 +310,51 @@ export function useDragSelect<T>(args: {
     extendDrag(hitTest(touch.clientX, touch.clientY, true));
   };
 
+  const onTouchEnd = (event: TouchEvent) => {
+    const tap = tapRef.current;
+    const touch = event.changedTouches[0];
+    // Pointer-up usually precedes touch-end; also handle the reverse ordering. Older
+    // Safari versions can still double-tap zoom with touch-action: manipulation.
+    // Claim only completed cell taps, never a swipe, hold, pinch or native control.
+    const validTap =
+      completedTouchTapRef.current ||
+      Boolean(
+        tap &&
+        touch &&
+        Math.hypot(touch.clientX - tap.x, touch.clientY - tap.y) <= 8 &&
+        tap.scrollTop === scrollRef.current?.scrollTop &&
+        tap.scrollLeft === scrollRef.current?.scrollLeft
+      );
+    completedTouchTapRef.current = false;
+    if (validTap && event.touches.length === 0 && event.cancelable)
+      event.preventDefault();
+  };
+
   // React's delegated touch listeners can be passive. Install a native listener on pointerdown
   // (before touchstart), so an activated hold can prevent the first scrolling move.
   // Changing touch-action after the timer fires cannot change an ongoing browser gesture.
   const touchHandlersRef = useRef({
     onTouchMove,
+    onTouchEnd,
     cancel: onLostPointerCapture,
+    resetTouchTap,
   });
   useLayoutEffect(() => {
-    touchHandlersRef.current = { onTouchMove, cancel: onLostPointerCapture };
+    touchHandlersRef.current = {
+      onTouchMove,
+      onTouchEnd,
+      cancel: onLostPointerCapture,
+      resetTouchTap,
+    };
   });
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     const cancel = () => touchHandlersRef.current.cancel();
+    const touchEnd = (event: TouchEvent) =>
+      touchHandlersRef.current.onTouchEnd(event);
     const scroll = (event: Event) => {
+      touchHandlersRef.current.resetTouchTap();
       // Grid scrolling during an active range is our edge auto-scroll. Any scrolling
       // before activation, or an ancestor moving under the finger, cancels the claim.
       if (tapRef.current || (touchRangeRef.current && event.target !== el))
@@ -292,10 +364,12 @@ export function useDragSelect<T>(args: {
       if (tapRef.current || touchRangeRef.current) event.preventDefault();
     };
     el.addEventListener("contextmenu", contextMenu);
+    el.addEventListener("touchend", touchEnd, { passive: false });
     document.addEventListener("scroll", scroll, true);
     return () => {
       cancel();
       el.removeEventListener("contextmenu", contextMenu);
+      el.removeEventListener("touchend", touchEnd);
       document.removeEventListener("scroll", scroll, true);
     };
   }, [scrollRef]);
@@ -305,6 +379,7 @@ export function useDragSelect<T>(args: {
     onPointerMove,
     onPointerUp,
     onLostPointerCapture,
+    resetTouchTap,
     isActive: () => Boolean(draggingRef.current || tapRef.current),
   };
 }

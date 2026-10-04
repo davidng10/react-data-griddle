@@ -1,36 +1,60 @@
 import { memo } from "react";
 
 import { classNames } from "../internal/class-names";
+import { resolveColumnCapabilities } from "../internal/column-capabilities";
+import { readContent } from "../internal/read-content";
 
-import type { ReactNode } from "react";
-import type { FrozenZone } from "../core/types";
+import type {
+  CellRenderContext,
+  Column,
+  FrozenZone,
+  RowId,
+} from "../core/types";
 
-// Primitive content keeps memoization effective; custom renderers may pass a fresh React node.
-export const Cell = memo(function Cell(props: {
+// Keep consumer callbacks inside the memo boundary so unchanged rows/columns skip their work.
+function CellInner<T>(props: {
   id: string;
+  row: T;
+  rowId: RowId;
+  column: Column<T>;
   rowIndex: number;
   columnIndex: number;
   ariaColumnIndex: number;
-  readOnly: boolean;
-  className?: string;
-  content: ReactNode;
   x: number;
   y: number;
   width: number;
   height: number;
   frozen?: FrozenZone;
 }) {
-  const { content, x, y, width, height, frozen } = props;
+  const { row, rowId, column, rowIndex, x, y, width, height, frozen } = props;
+  const context: CellRenderContext<T> = {
+    row,
+    rowId,
+    rowIndex,
+    column,
+    columnId: column.id,
+    value: column.accessor(row),
+    width,
+    height,
+  };
+  const editable = resolveColumnCapabilities(column).editable;
+  const readOnly = !(typeof editable === "function"
+    ? editable(context)
+    : editable);
+  const className =
+    typeof column.cellClassName === "function"
+      ? column.cellClassName(context)
+      : column.cellClassName;
   return (
     <div
       id={props.id}
       role="gridcell"
       aria-colindex={props.ariaColumnIndex}
       aria-rowindex={props.rowIndex + 2}
-      aria-readonly={props.readOnly}
+      aria-readonly={readOnly}
       data-cell-row={props.rowIndex}
       data-cell-column={props.columnIndex}
-      className={classNames("dgr-cell", props.className)}
+      className={classNames("dgr-cell", className)}
       data-frozen={frozen}
       style={{
         width,
@@ -39,7 +63,9 @@ export const Cell = memo(function Cell(props: {
         transform: `translate(${x}px, ${y}px)`,
       }}
     >
-      {content}
+      {readContent(context)}
     </div>
   );
-});
+}
+
+export const Cell = memo(CellInner) as typeof CellInner;

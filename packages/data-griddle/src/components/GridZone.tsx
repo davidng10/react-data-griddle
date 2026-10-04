@@ -2,7 +2,6 @@ import { cellKey } from "../core/types/ids";
 import { PendingOverlay } from "../editors/PendingOverlay";
 import { gridCellId } from "../internal/accessibility";
 import { resolveColumnCapabilities } from "../internal/column-capabilities";
-import { readContent } from "../internal/read-content";
 import { Cell } from "./Cell";
 import { DragOverlay } from "./DragOverlay";
 import { EmptyRowsLayer } from "./EmptyRowsLayer";
@@ -18,12 +17,7 @@ import type { EditStore } from "../core/store/edit-store";
 import type { GridStore } from "../core/store/grid-store";
 import type { PendingStore } from "../core/store/pending-store";
 import type { ResizeStore } from "../core/store/resize-store";
-import type {
-  CellRenderContext,
-  Column,
-  HeaderRenderContext,
-  RowId,
-} from "../core/types";
+import type { Column, HeaderRenderContext, RowId } from "../core/types";
 
 /** A rendered column with its resolved zone-local position. */
 export type PlacedCol<T> = {
@@ -139,44 +133,23 @@ export function GridZone<T>(props: {
         {vRows.map((vr) => {
           const row = rows[vr.index];
           const rowId = getRowId(row, vr.index);
-          return placedCols.map((pc) => {
-            const context: CellRenderContext<T> = {
-              row,
-              rowId,
-              rowIndex: vr.index,
-              column: pc.col,
-              columnId: pc.col.id,
-              value: pc.col.accessor(row),
-              width: pc.width,
-              height: vr.size,
-            };
-            const editable = resolveColumnCapabilities(pc.col).editable;
-            return (
-              <Cell
-                key={cellKey(rowId, pc.col.id)}
-                id={gridCellId(props.gridId, rowId, pc.col.id)}
-                rowIndex={vr.index}
-                columnIndex={pc.columnIndex}
-                ariaColumnIndex={pc.columnIndex + 1 + (gutterW ? 1 : 0)}
-                readOnly={
-                  !(typeof editable === "function"
-                    ? editable(context)
-                    : editable)
-                }
-                className={
-                  typeof pc.col.cellClassName === "function"
-                    ? pc.col.cellClassName(context)
-                    : pc.col.cellClassName
-                }
-                content={readContent(context)}
-                x={pc.x}
-                y={vr.start}
-                width={pc.width}
-                height={vr.size}
-                frozen={frozen}
-              />
-            );
-          });
+          return placedCols.map((pc) => (
+            <Cell
+              key={cellKey(rowId, pc.col.id)}
+              id={gridCellId(props.gridId, rowId, pc.col.id)}
+              row={row}
+              rowId={rowId}
+              column={pc.col}
+              rowIndex={vr.index}
+              columnIndex={pc.columnIndex}
+              ariaColumnIndex={pc.columnIndex + 1 + (gutterW ? 1 : 0)}
+              x={pc.x}
+              y={vr.start}
+              width={pc.width}
+              height={vr.size}
+              frozen={frozen}
+            />
+          ));
         })}
         <SelectionOverlay
           zone={zone}

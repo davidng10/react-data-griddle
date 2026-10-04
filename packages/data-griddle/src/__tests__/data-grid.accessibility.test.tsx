@@ -170,14 +170,12 @@ describe("touch scrolling and taps", () => {
     expect(onSelectionChange).not.toHaveBeenCalled();
     expect(screen.queryByRole("textbox")).toBeNull();
   });
-  it("two touch taps only select; editing is explicit", () => {
+  it("a touch double-tap opens the named editor", () => {
     const { grid } = setup();
     for (let i = 0; i < 2; i++) {
       pointer(grid, "pointerDown", 40, 48);
       pointer(grid, "pointerUp", 40, 48);
     }
-    expect(screen.queryByRole("textbox")).toBeNull();
-    fireEvent.keyDown(grid, { key: "Enter" });
     expect(screen.getByRole("textbox")).toHaveAccessibleName("Left, row 1");
   });
   it("does not resize from a normal touch header drag", () => {

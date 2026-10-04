@@ -102,8 +102,8 @@ row content; client layout measurements populate the grid. A consumer does not n
 
 Desktop Chromium evidence does not establish the full Chrome/Edge/Firefox/Safari matrix, physical
 iOS/Android usability, screen-reader support, mobile IME behavior, zoom or forced-colors support.
-Missing touch edit entry, keyboard resizing and keyboard/touch reordering remain release blockers.
-Hold-and-drag range selection and touch resizing have a separate `pnpm check:touch` Chromium smoke script against the running
+Missing keyboard resizing and keyboard/touch reordering remain release blockers.
+Hold-and-drag selection, touch resizing and double-tap editing have a separate `pnpm check:touch` Chromium smoke script against the running
 local app; this does not expand the historical packed-consumer matrix or verify physical devices.
 Follow the [manual accessibility and interaction matrix](./ACCESSIBILITY.md).
 

@@ -19,6 +19,10 @@
   display: flex;
   position: relative;
 }
+.dgr-cell {
+  /* Reserve double-tap for editing while retaining native pan and pinch zoom. */
+  touch-action: manipulation;
+}
 .dgr-zone,
 .dgr-body {
   position: relative;

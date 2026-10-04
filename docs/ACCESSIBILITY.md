@@ -1,8 +1,8 @@
 # Accessibility and interaction
 
 Data Griddle's source implementation includes grid semantics, keyboard navigation, touch tap/scroll,
-hold-to-select and touch column resizing. Browser,
-physical-device and screen-reader compatibility is **not yet verified**. The first release remains
+hold-to-select, double-tap editing and touch column resizing. The full browser,
+physical-device and screen-reader matrix is **not yet verified**. The first release remains
 blocked on the manual matrix below. Automated tests and a browser accessibility tree do not establish
 screen-reader usability.
 
@@ -89,8 +89,18 @@ save/cancel controls and focus. Test them independently, including with the on-s
 ## Touch and narrow layouts
 
 Swipe immediately on cells or headers outside resize handles to scroll normally. A short tap within 8px without scrolling
-focuses a cell; repeated taps do not implicitly edit. Native/custom controls retain their normal
+focuses a cell. Native/custom controls retain their normal
 activation and scrolling behavior.
+
+Double-tap an editable cell to open its editor: start the second tap within 300 ms of the first
+release, on the same cell and within 24px. Each contact must stay within 8px and end before the
+500 ms hold activates. The editor opens and focuses on the second release. Use its Save/Cancel
+buttons; native select changes save immediately. Read-only cells and cells awaiting a commit do
+not open an editor. A swipe, hold, scroll, interruption or intervening input breaks the tap pair.
+Cells reserve double-tap for editing while retaining native panning and pinch zoom.
+Built-in text/select editors preserve the configured font size and focus with `preventScroll: true`.
+The portal positions the editor within the visual viewport; native focus need not scroll or zoom
+the page to reveal it. Confirm this behavior on the target iOS version when testing keyboard entry.
 
 Hold a selectable cell for 500 ms, staying within 8px, to start a range. A one-cell highlight marks
 activation. Keep the finger down and drag to extend across cells and frozen zones. After crossing a
@@ -113,9 +123,9 @@ the rest of the header permits native scrolling. Cancellation, lost capture, ano
 Escape, loading, source identity changes, window blur or resize discard the preview. Read-only
 widths and non-resizable/action columns do not expose resize handles.
 
-**Implementation gaps (2026-10-04):** touch entry into editing, keyboard column resizing and
-keyboard/touch column reordering still need direct interactions. Hold-to-select and touch resizing
-are implemented, but physical iOS/Android and assistive-technology verification remain outstanding.
+**Implementation gaps (2026-10-04):** keyboard column resizing and keyboard/touch column reordering
+still need direct interactions. Hold-to-select, double-tap editing and touch resizing are implemented;
+the full physical iOS/Android and assistive-technology matrix remains outstanding.
 Run `pnpm check:touch` against a running `pnpm dev` app for the
 Chromium touch-input smoke check; an optional URL selects a served production export, for example
 `pnpm check:touch http://127.0.0.1:8080`. This is browser emulation, not physical-device evidence.
@@ -202,8 +212,8 @@ Physical mobile steps (desktop viewport emulation does not satisfy these):
 1. On named iOS/Android devices, scroll the page, grid vertically and horizontally, start swipes in
    cells/headers/gutter, pinch zoom, tap and double-tap. No swipe should create a range or open an
    editor. Verify native/custom checkbox targets, mixed and read-only states with touch and AT.
-2. **Blocked until touch edit entry is implemented:** open an editor by touch and type with the
-   on-screen keyboard. Test opening/closing/changing
+2. Double-tap an editable cell and type with the on-screen keyboard. Confirm a single tap only
+   focuses, distant/slow taps do not edit, and holds/swipes never open an editor. Test opening/closing/changing
    keyboard, predictive text, Japanese/Chinese/Korean IME candidates, dictation, emoji, select picker,
    native copy/paste, Save and Cancel. Candidate-confirmation Enter must not save prematurely.
 3. Hold a cell for 500 ms until its range highlight appears, then drag across zones and beyond

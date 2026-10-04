@@ -107,6 +107,13 @@ Resize handles reserve touch dragging with `touch-action: none`. Their internal 
 from 5px to 12px on coarse-pointer devices; preserve this policy to keep resizing separate from
 native header scrolling.
 
+Cells use `touch-action: manipulation` so double-tap editing does not trigger browser double-tap
+zoom. Preserve native pan and pinch zoom when customizing this policy.
+
+Built-in editor inputs inherit the grid font on both touch and desktop devices, without a minimum
+font size. Their initial focus uses `preventScroll: true`; the portal owns viewport placement.
+Custom editor typography and focus behavior remain application-owned.
+
 ## Conditional classes
 
 ```tsx

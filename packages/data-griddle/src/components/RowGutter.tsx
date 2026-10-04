@@ -1,4 +1,4 @@
-import { useMemo, useRef, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useRef, useSyncExternalStore } from "react";
 
 import { gridCellId } from "../internal/accessibility";
 import { GUTTER_WIDTH } from "../internal/constants";
@@ -44,15 +44,19 @@ export function RowGutter(props: {
     renderSelectionCheckbox,
     strongDivider,
   } = props;
-  const selection = useSyncExternalStore(
+  const getSelectedRows = useCallback(
+    () => store.getSnapshot().selectedRows,
+    [store]
+  );
+  const selectedRows = useSyncExternalStore(
     store.subscribe,
-    store.getSnapshot,
-    store.getSnapshot
+    getSelectedRows,
+    getSelectedRows
   );
   // Scroll/focus/range updates reuse this count; do not scan the dataset on pointer movement.
   const selectedCount = useMemo(
-    () => allRowIds.filter((id) => selection.selectedRows.has(id)).length,
-    [allRowIds, selection.selectedRows]
+    () => allRowIds.filter((id) => selectedRows.has(id)).length,
+    [allRowIds, selectedRows]
   );
   const allChecked = rowCount > 0 && selectedCount === rowCount;
   const someChecked = selectedCount > 0 && !allChecked;
@@ -135,7 +139,7 @@ export function RowGutter(props: {
                   "aria-label": `Select row ${vr.index + 1}`,
                   disabled,
                   readOnly,
-                  checked: selection.selectedRows.has(rowId),
+                  checked: selectedRows.has(rowId),
                   indeterminate: false,
                   onChange: () => toggle(rowId),
                 }}
