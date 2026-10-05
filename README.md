@@ -18,7 +18,7 @@ selection, editing, and pointer interactions off the main cell-rendering path.
 - Custom cell, header, editor, and selection-checkbox renderers
 - Stable-ID imperative cell focus
 - Synchronous validation and asynchronous commits
-- Within-zone column reordering
+- Mouse and touch within-zone column reordering (hold a header, drag, release)
 - Mouse and touch column resizing with optional persistence callbacks
 
 ## Usage

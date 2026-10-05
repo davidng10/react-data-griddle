@@ -19,7 +19,8 @@
     "prepare": "husky",
     "check:docs": "pnpm build && node scripts/check-docs.mjs",
     "lint:fixtures": "tsc -p fixtures/tsconfig.json && tsc -p fixtures/vite/tsconfig.json && tsc -p fixtures/next-app/tsconfig.json && tsc -p fixtures/next-pages/tsconfig.json",
-    "check:touch": "node scripts/check-touch.mjs"
+    "check:touch": "node scripts/check-touch.mjs",
+    "check:reorder-indicator": "node scripts/check-reorder-indicator.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

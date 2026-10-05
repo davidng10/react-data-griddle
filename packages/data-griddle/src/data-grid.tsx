@@ -306,6 +306,7 @@ function DataGridInner<T>(
 
   // Column drag and cell selection are mutually exclusive; header drag gets first refusal.
   const colDrag = useColumnDrag({
+    gridId,
     reorderable,
     dragStore,
     scrollRef,
@@ -587,10 +588,10 @@ function DataGridInner<T>(
           }
           capturedPointerRef.current = event.pointerId;
           if (event.pointerType === "touch") {
-            // Only actual resize handles reserve touch scrolling. Other header touches
-            // remain native; touch column reordering is not enabled here.
-            if (!colResize.onPointerDown(event)) dragSel.onPointerDown(event);
-            else dragSel.resetTouchTap();
+            // Edges resize immediately; header holds reorder; cell holds select a range.
+            if (colResize.onPointerDown(event) || colDrag.onPointerDown(event))
+              dragSel.resetTouchTap();
+            else dragSel.onPointerDown(event);
           } else {
             dragSel.resetTouchTap();
             onPointerDown(event);

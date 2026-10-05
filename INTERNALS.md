@@ -227,6 +227,18 @@ swipes, holds, pinches and embedded controls do not claim the touch end.
 Built-in text/select editors focus with `preventScroll: true` so native focus does not compete
 with portal placement. Typography continues to inherit the grid font, without a mobile size floor.
 
-No built-in actions panel is rendered. Keyboard resizing and keyboard/touch
-reordering remain unimplemented. Physical-device verification is separate
+Touch column reordering claims eligible headers after resize hit testing. A 500 ms hold within 8px
+starts the insertion guide and floating column-label preview; early movement/scroll leaves native panning alone. Native non-passive
+move/cancel listeners stay on the original contact target through horizontal virtualization, while
+pointer capture keeps release on the scroller. Target updates reuse the zone/barrier geometry and
+only update the drag store. Center edge auto-scroll begins after movement, never on a stationary
+hold. Release commits once; cancellation discards the preview and clears listeners/timers/frames.
+The ghost displays the column name, carrying the source header's basic typography, colors and
+text direction once at activation. Custom header content and decorations are not copied or
+mounted again. It is body-mounted, inert and aria-hidden. It follows client coordinates, offset
+above touch contacts and clamped to the visual viewport. Movement updates its transform and
+viewport size limits; source columns stay put.
+Release, cancellation and unmount remove it, including after source-header virtualization.
+
+No built-in actions panel is rendered. Keyboard resizing and reordering remain unimplemented. Physical-device verification is separate
 from the source and Chromium touch-input regressions.

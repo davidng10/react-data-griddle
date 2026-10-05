@@ -1,7 +1,7 @@
 # Accessibility and interaction
 
 Data Griddle's source implementation includes grid semantics, keyboard navigation, touch tap/scroll,
-hold-to-select, double-tap editing and touch column resizing. The full browser,
+hold-to-select, double-tap editing and touch column resizing/reordering. The full browser,
 physical-device and screen-reader matrix is **not yet verified**. The first release remains
 blocked on the manual matrix below. Automated tests and a browser accessibility tree do not establish
 screen-reader usability.
@@ -123,12 +123,24 @@ the rest of the header permits native scrolling. Cancellation, lost capture, ano
 Escape, loading, source identity changes, window blur or resize discard the preview. Read-only
 widths and non-resizable/action columns do not expose resize handles.
 
-**Implementation gaps (2026-10-04):** keyboard column resizing and keyboard/touch column reordering
-still need direct interactions. Hold-to-select, double-tap editing and touch resizing are implemented;
+Hold an eligible header for 500 ms, staying within 8px, until an insertion guide and floating header copy appear. The copy follows your finger,
+offset upward where viewport space permits. Drag and release to reorder once within its frozen/center zone. Action columns and explicit reorder barriers
+cannot be crossed. After dragging begins, the center zone scrolls horizontally near its edges to
+reach offscreen columns; a stationary hold does not scroll or change order. Returning to the source
+is a no-op. Immediate swipes keep native scrolling; embedded controls keep native activation.
+Resize handles take priority and do not require a hold. Cancellation, an extra contact, lost capture,
+Escape, loading, identity/geometry changes, window blur/resize or ancestor scrolling discard the
+preview. Controlled read-only order and non-reorderable columns do not claim a header hold.
+
+**Implementation gaps (2026-10-05):** keyboard column resizing and reordering still need direct
+interactions. Hold-to-select, double-tap editing and touch resizing/reordering are implemented;
 the full physical iOS/Android and assistive-technology matrix remains outstanding.
 Run `pnpm check:touch` against a running `pnpm dev` app for the
 Chromium touch-input smoke check; an optional URL selects a served production export, for example
 `pnpm check:touch http://127.0.0.1:8080`. This is browser emulation, not physical-device evidence.
+`pnpm check:reorder-indicator` runs standalone Chromium fixtures that check the guide's painted
+pixels and drop results beside the checkbox gutter and at both ends of every frozen/center zone.
+The checkbox gutter stays fixed; the first data-column drop position is immediately after it.
 
 Default checkboxes are 16px controls inside labels covering their gutter cell (40px wide); choose
 `rowHeight` 44 or larger for taller row targets. Replacement controls must provide usable targets.
@@ -223,9 +235,10 @@ Physical mobile steps (desktop viewport emulation does not satisfy these):
    continuing scroll loop, accidental editor or resize/reorder commit is acceptable.
 4. Drag resize handles on both sides of boundaries and in frozen bands. Resize to limits and cancel
    mid-interaction without committing. Confirm header swipes outside handles still scroll. Repeat
-   with controlled read-only state and action columns. **Touch reordering remains blocked:** move
-   to barriers and move an offscreen center column through repeated actions; confirm it scrolls
-   into view.
+   with controlled read-only state and action columns. Hold a header until the insertion guide appears,
+   drag across columns in each zone, test barriers and return-to-source, then release or cancel.
+   Drag toward the center edges to reach offscreen columns, including after the source header is
+   virtualized out. Confirm the next immediate header swipe scrolls normally.
 5. Test 320–430px portrait widths, landscape, device rotation, large fonts, both frozen bands and
    responsive unpinning. With AT active, use touch exploration and gesture navigation to complete
    selection, editing and column actions. Record usability findings, not only attribute inspection.

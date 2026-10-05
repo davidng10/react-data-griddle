@@ -139,6 +139,106 @@ try {
     "ordinary header swipe scrolls without resizing"
   );
 
+  // A held header reorders on release, while cancellation discards its preview.
+  await page.reload();
+  await grid.getByRole("gridcell").first().waitFor();
+  await page.addStyleTag({
+    content:
+      ".ghost-theme .dgr-header-cell { color: rgb(123, 45, 67); background-color: rgb(240, 230, 220); font-family: monospace; }",
+  });
+  await page
+    .locator(".dgr-root")
+    .evaluate((el) => el.classList.add("ghost-theme"));
+  const reorderGuide = grid.locator(".dgr-reorder-indicator");
+  const ghost = page.locator(".dgr-drag-ghost");
+  const roleHeader = grid.getByRole("columnheader", {
+    name: "Role",
+    exact: true,
+  });
+  const headerX = async (locator) => (await locator.boundingBox()).x;
+  await touch("touchStart", x, handleY);
+  await expect(reorderGuide).toHaveCount(1);
+  await expect(ghost).toBeVisible();
+  await expect(ghost).toHaveText("Name");
+  await expect(ghost).toHaveAttribute("inert", "");
+  await expect(ghost).toHaveCSS("pointer-events", "none");
+  await expect(ghost).toHaveCSS("color", "rgb(123, 45, 67)");
+  await expect(ghost).toHaveCSS("background-color", "rgb(240, 230, 220)");
+  await expect(ghost).toHaveCSS("font-family", "monospace");
+  const originalHeaderBox = await header.boundingBox();
+  assert.equal((await ghost.boundingBox()).width, originalHeaderBox.width);
+  await expect(ghost).toHaveCSS(
+    "font-size",
+    await header.evaluate((el) => getComputedStyle(el).fontSize)
+  );
+  await touch("touchMove", box.x + box.width - 15, handleY + 80);
+  const ghostBox = await ghost.boundingBox();
+  assert(
+    ghostBox.y + ghostBox.height < handleY + 80,
+    "touch ghost stays above the finger"
+  );
+  assert(
+    ghostBox.x >= 0 && ghostBox.x + ghostBox.width <= 390,
+    "ghost stays inside the visible viewport"
+  );
+  assert(
+    (await headerX(header)) < (await headerX(roleHeader)),
+    "drag only previews order"
+  );
+  assert.equal(
+    await scrollTop(),
+    0,
+    "held header drag does not pan vertically"
+  );
+  await page.screenshot({ path: join(evidence, "touch-reorder-preview.png") });
+  await touch("touchEnd");
+  await expect(reorderGuide).toHaveCount(0);
+  await expect(ghost).toHaveCount(0);
+  await expect
+    .poll(async () => (await headerX(roleHeader)) < (await headerX(header)))
+    .toBe(true);
+  await page.screenshot({ path: join(evidence, "touch-reorder.png") });
+  const reorderedNameX = (await headerX(header)) + 70;
+  await touch("touchStart", reorderedNameX, handleY);
+  await expect(reorderGuide).toHaveCount(1);
+  await touch("touchMove", box.x + 45, handleY);
+  await touch("touchCancel");
+  await expect(reorderGuide).toHaveCount(0);
+  await expect(ghost).toHaveCount(0);
+  assert(
+    (await headerX(roleHeader)) < (await headerX(header)),
+    "cancel keeps the committed order"
+  );
+
+  await page.reload();
+  await grid.getByRole("gridcell").first().waitFor();
+  await cdp.send("Emulation.setPageScaleFactor", { pageScaleFactor: 2 });
+  await touch("touchStart", x, handleY);
+  await expect(ghost).toBeVisible();
+  await touch("touchMove", x + 30, handleY + 100);
+  const zoomedGhost = await ghost.boundingBox();
+  const visibleViewport = await page.evaluate(() => ({
+    left: visualViewport.offsetLeft,
+    top: visualViewport.offsetTop,
+    width: visualViewport.width,
+    height: visualViewport.height,
+  }));
+  assert(
+    zoomedGhost.x >= visibleViewport.left &&
+      zoomedGhost.y >= visibleViewport.top
+  );
+  assert(
+    zoomedGhost.x + zoomedGhost.width <=
+      visibleViewport.left + visibleViewport.width
+  );
+  assert(
+    zoomedGhost.y + zoomedGhost.height <=
+      visibleViewport.top + visibleViewport.height
+  );
+  await touch("touchCancel");
+  await expect(ghost).toHaveCount(0);
+  await cdp.send("Emulation.setPageScaleFactor", { pageScaleFactor: 1 });
+
   // Browser-generated taps must open/focus an editor, without a compatibility click closing it.
   await page.reload();
   await grid.getByRole("gridcell").first().waitFor();
@@ -215,12 +315,74 @@ try {
   await desktop.goto(url);
   const desktopGrid = desktop.getByRole("grid", { name: "People example" });
   await desktopGrid.getByRole("gridcell").first().waitFor();
-  await desktopGrid.focus();
+  const desktopHeader = await desktopGrid
+    .getByRole("columnheader", { name: "Name", exact: true })
+    .boundingBox();
+  await desktop.mouse.move(desktopHeader.x + 50, desktopHeader.y + 16);
+  await desktop.mouse.down();
+  await expect(desktop.locator(".dgr-drag-ghost")).toHaveCount(0);
+  await desktop.mouse.move(desktopHeader.x + 70, desktopHeader.y + 50);
+  await expect(desktop.locator(".dgr-drag-ghost")).toBeVisible();
+  await desktop.keyboard.press("Escape");
+  await desktop.mouse.up();
+  await expect(desktop.locator(".dgr-drag-ghost")).toHaveCount(0);
+  // A wide source keeps its width while the preview uses a capped label from column data.
+  const wideHeader = desktopGrid.getByRole("columnheader", {
+    name: "Name",
+    exact: true,
+  });
+  const resizeEdge = await wideHeader
+    .locator('[data-resize-handle="right"]')
+    .boundingBox();
+  await desktop.mouse.move(
+    resizeEdge.x + resizeEdge.width / 2,
+    resizeEdge.y + 16
+  );
+  await desktop.mouse.down();
+  await desktop.mouse.move(
+    resizeEdge.x + resizeEdge.width / 2 + 380,
+    resizeEdge.y + 16
+  );
+  await desktop.mouse.up();
+  await expect(wideHeader).toHaveCSS("width", "600px");
+  const longTitle =
+    "A very long column heading that should be abbreviated inside the floating preview";
+  await wideHeader.evaluate((el, title) => {
+    el.firstChild.textContent = title;
+  }, longTitle);
+  const longHeader = desktopGrid.getByRole("columnheader", {
+    name: longTitle,
+    exact: true,
+  });
+  const longBox = await longHeader.boundingBox();
+  const grabX = longBox.x + 550;
+  await desktop.mouse.move(grabX, longBox.y + 16);
+  await desktop.mouse.down();
+  await desktop.mouse.move(grabX + 10, longBox.y + 60);
+  const compactGhost = desktop.locator(".dgr-drag-ghost");
+  await expect(compactGhost).toHaveCSS("width", "240px");
+  const compactBox = await compactGhost.boundingBox();
+  assert.equal(compactBox.height, longBox.height, "ghost keeps header height");
+  assert(
+    compactBox.x <= grabX + 10 && compactBox.x + compactBox.width >= grabX + 10,
+    "capped ghost stays attached to a grab near the source's far edge"
+  );
+  await expect(compactGhost).toHaveText("Name");
+  await expect(compactGhost).toHaveCSS("text-overflow", "ellipsis");
+  await expect(longHeader).toHaveCSS("width", "600px");
+  await desktop.screenshot({ path: join(evidence, "capped-drag-ghost.png") });
+  await desktop.keyboard.press("Escape");
+  await desktop.mouse.up();
+  await expect(compactGhost).toHaveCount(0);
+  // Escape clears the active cell as well as cancelling the drag; choose a cell before editing.
+  await desktopGrid
+    .getByRole("gridcell", { name: "Ada Chen", exact: true })
+    .click();
   await desktopGrid.press("Enter");
   await expect(desktop.getByRole("textbox")).toHaveCSS("font-size", "13px");
   await desktop.close();
   console.log(
-    `Chromium touch range, native scrolling, edge-scroll cancellation, column resizing and double-tap editing passed. Screenshots: ${evidence}`
+    `Chromium touch range, native scrolling, edge-scroll cancellation, column resizing/reordering and double-tap editing passed. Screenshots: ${evidence}`
   );
 } finally {
   await browser.close();

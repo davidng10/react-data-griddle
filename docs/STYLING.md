@@ -87,6 +87,7 @@ use tokens for portable editor styling, or `.dgr-editor-host` for common editor 
 | `.dgr-row-gutter`, `.dgr-gutter-header`, `.dgr-gutter-cell`, `.dgr-checkbox`             | Built-in row-selection parts                               |
 | `.dgr-row-gutter[data-divider]`                                                          | Strong gutter divider when no left frozen zone supplies it |
 | `.dgr-selection-range`, `.dgr-focus-ring`                                                | Store-driven selection/focus overlays                      |
+| `.dgr-drag-ghost`                                                                        | Floating column-header preview (body-mounted)              |
 | `.dgr-resize-indicator`, `.dgr-reorder-indicator`                                        | Gesture guides                                             |
 | `.dgr-pending-cell`, `.dgr-pending-spinner`, `.dgr-pending-track`, `.dgr-pending-stroke` | Optimistic value and saving indicator                      |
 | `.dgr-error-cell`                                                                        | Failed commit flash                                        |
@@ -98,6 +99,14 @@ use tokens for portable editor styling, or `.dgr-editor-host` for common editor 
 | `.dgr-loading-layer[data-grid-state="refreshing"]`                                       | Retained-result overlay                                    |
 | `.dgr-loading-body`, `.dgr-loading-indicator`, `.dgr-loading-spinner`                    | Loading layout and default indicator                       |
 | `.dgr-empty-content`, `.dgr-status-text`                                                 | Empty result and visually hidden accessible announcement   |
+
+The drag ghost displays `column.name` and copies only the source header's font family, size,
+weight, style, foreground/background colors and text direction when dragging activates. Its
+width is capped at 240px and the visible viewport; narrower headers keep their width. Long titles
+truncate with an ellipsis while the original column width and header height stay unchanged. Its
+`.dgr-drag-ghost` class supplies padding, opacity, shadow and outline; use a global selector to
+customize these because the preview is mounted under `body`. Custom header components, controls,
+icons and pseudo-element decorations are not included in the preview.
 
 Selection states live on overlays, not every cell. Do not reveal `.dgr-status-text` or override
 interaction blocking. Loading's existing reduced-motion choice is unchanged: initial bars pulse

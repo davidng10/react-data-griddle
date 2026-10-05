@@ -125,7 +125,12 @@ export function GridZone<T>(props: {
             />
           );
         })}
-        <DragOverlay zone={zone} dragStore={dragStore} rowHeight={rowHeight} />
+        <DragOverlay
+          zone={zone}
+          dragStore={dragStore}
+          rowHeight={rowHeight}
+          total={total}
+        />
       </div>
       {/* body */}
       <div className="dgr-body" style={{ height: totalHeight }}>

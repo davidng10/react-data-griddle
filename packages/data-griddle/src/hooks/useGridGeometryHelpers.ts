@@ -150,8 +150,11 @@ export function useGridGeometryHelpers<T>(args: {
     const vpY = clientY - rect.top;
     if (vpY < 0 || vpY >= rowHeight) return null; // only the header strip
 
-    const r = resolveZone(clientX - rect.left, el.clientWidth, el.scrollLeft);
-    if (!r) return null;
+    const localX = clientX - rect.left;
+    if (localX < 0 || localX >= el.clientWidth) return null;
+    const r = resolveZone(localX, el.clientWidth, el.scrollLeft);
+    // Starting a reorder needs a real header, not the empty strip after the last column.
+    if (!r || r.zoneX < 0 || r.zoneX >= r.zl.total) return null;
     const i = colIndexAtX(r.zl.offsets, r.zoneX);
     const col = r.cols[i];
     if (!col || !resolveColumnCapabilities(col).reorderable) return null;
