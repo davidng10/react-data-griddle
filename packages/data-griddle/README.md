@@ -19,18 +19,20 @@ selection, editing, and pointer interactions off the main cell-rendering path.
 
 ## Usage
 
-The ESM library lives in `packages/data-griddle`. Publication is disabled while the first
-experimental release is prepared; `0.0.0` is a local placeholder, not the chosen release version.
-Build and pack it locally, then install the tarball in your application.
+The initial release target is **0.1.0**, an experimental `0.x` release. APIs, styling contracts
+and behavior may change; pin an exact version and review release notes before upgrading.
+The command below is for the npm release; until it is published, use the local tarball workflow
+in the package verification guide.
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm build:lib
-cd packages/data-griddle
-npm pack
-# From your consuming application:
-npm install /path/to/data-griddle-0.0.0.tgz
+npm install --save-exact data-griddle@0.1.0
 ```
+
+Requires matching React and React DOM versions satisfying `^18.3.1 || ^19.2.6`.
+The package is ESM-only and targets ES2022; CommonJS is not provided. Packed consumers have been
+tested with React 18.3.1 and 19.2.6 in Vite, Next.js Pages Router, and React 19 in Next.js App Router.
+These checks use desktop Chromium; they do not establish minimum browser/OS versions or full
+mobile and screen-reader support.
 
 Import `data-griddle/styles.css` once in your application entry. The JavaScript entry does not
 automatically inject CSS. In Next.js use the root layout (App Router) or `pages/_app.tsx`.
@@ -214,7 +216,7 @@ pnpm check:consumers  # real tarballs in isolated Vite/Next consumers
 pnpm check:touch      # Chromium touch gestures; requires pnpm dev in another terminal
 ```
 
-See [INTERNALS.md](https://github.com/davidng10/react-data-grid/blob/main/INTERNALS.md) for the rendering model and performance constraints.
+See [INTERNALS.md](https://github.com/davidng10/react-data-griddle/blob/main/INTERNALS.md) for the rendering model and performance constraints.
 
 For phone testing through ngrok, put the tunnel hostname (without `https://` or a port) in
 `apps/docs/.env.local`, then restart `pnpm dev`:
@@ -236,23 +238,23 @@ Cells and headers clip overflow without automatic ellipsis. Opt into truncation 
 CSS through these classes, or style individual labels and links inside custom renderers.
 Use `rowHeight` and column widths for geometry; CSS controls appearance.
 
-See the [styling contract](https://github.com/davidng10/react-data-grid/blob/main/docs/STYLING.md) for tokens, defaults, parts, callback contexts, and
+See the [styling contract](https://github.com/davidng10/react-data-griddle/blob/main/docs/STYLING.md) for tokens, defaults, parts, callback contexts, and
 portal synchronization limits. The guide includes theme and conditional-class examples; the local
 app does not include an interactive theme showcase.
 
 ## Integration APIs
 
-See the [integration guide](https://github.com/davidng10/react-data-grid/blob/main/docs/INTEGRATION.md) for controlled/uncontrolled/read-only state,
+See the [integration guide](https://github.com/davidng10/react-data-griddle/blob/main/docs/INTEGRATION.md) for controlled/uncontrolled/read-only state,
 stable identity, editing and persistence, custom selection controls, and the `DataGridHandle.focusCell`
 command. Run `pnpm dev` and open `/` for the basic editable grid. Packed-consumer fixtures cover
 additional public-API scenarios; their setup and coverage are described in the verification guide below.
 
-Stores and geometry helpers remain private. See [package verification](https://github.com/davidng10/react-data-grid/blob/main/docs/PACKAGE_VERIFICATION.md)
+Stores and geometry helpers remain private. See [package verification](https://github.com/davidng10/react-data-griddle/blob/main/docs/PACKAGE_VERIFICATION.md)
 for exact tested versions and remaining limitations.
 
 ## Accessibility and interaction
 
-See [keyboard, touch and accessibility guidance](https://github.com/davidng10/react-data-grid/blob/main/docs/ACCESSIBILITY.md) for navigation, native control
+See [keyboard, touch and accessibility guidance](https://github.com/davidng10/react-data-griddle/blob/main/docs/ACCESSIBILITY.md) for navigation, native control
 tab order, editor behavior, remaining touch/column interaction gaps and the manual test matrix.
 Source semantics and keyboard navigation are implemented; target-browser, physical-device and
 screen-reader support remains unverified. Applications must adapt frozen widths and columns to
@@ -268,9 +270,11 @@ narrow containers; the basic app does not demonstrate responsive unpinning.
 The development app consumes only public package exports. `pnpm dev` builds the library first and watches
 it alongside Next.js; restart it after changing the public export map. No Turborepo or Nx is needed.
 
-One package will support future stable and experimental npm tags. Tags, versions and Git branches
-are separate decisions; preview consumers should pin an exact version. The first release will be
-experimental, with no stable compatibility promise. Stable documentation must be deployed from a
-revision using the corresponding stable library, never silently follow experimental development.
-Both packages are private and the library also rejects `prepublishOnly`; no publication or deployment
-workflow is enabled. Release version, channel and public repository location remain deliberate gates.
+The initial release uses version `0.1.0` and the npm `latest` tag. The tag controls the default
+installation; it does not imply a stable API. Pin preview versions exactly. Documentation lives
+in this README and the repository guides; a dedicated documentation site is outside this release.
+
+See the [release checklist](https://github.com/davidng10/react-data-griddle/blob/main/docs/RELEASING.md) for preparation status, remaining
+verification and the manual publishing procedure, and [release notes](https://github.com/davidng10/react-data-griddle/blob/main/CHANGELOG.md)
+for the initial feature scope and limitations. The library is configured for publication;
+the workspace and development app remain private. There is no automated publishing workflow.

@@ -14,7 +14,7 @@ uses its framework-selected React implementation, so Vite and direct Node SSR ar
 the independent evidence for the declared React versions.
 
 `locks/` pins transitive consumer dependencies. Subsequent runs use `npm ci` with
-only the local tarball integrity updated to the newly built artifact. To deliberately
+only the local package version and tarball integrity updated to the newly built artifact. To deliberately
 refresh a fixture lock, remove that matrix entry's lock and run the check again.
 `CONSUMER_FILTER=vite-react18 pnpm check:consumers` selects a diagnostic subset;
 a partial run does not establish the full matrix.

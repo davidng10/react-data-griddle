@@ -1,23 +1,27 @@
 # Package verification
 
-Data Griddle is being prepared for an experimental npm release. Publication remains disabled;
-`0.0.0` is a local placeholder. Use the local tarball instructions in the [README](../README.md).
+Data Griddle is being prepared for its first npm release, `0.1.0` on the `latest` tag.
+The library is configured for publication; no package has been published by this preparation.
+See the [release checklist](./RELEASING.md) for the outstanding gates.
 
-This guide was restored on 2026-10-03 from the maintainer's 2026-09-28 Phase 5 verification record
-and checked against the current package configuration and verification scripts. The recorded run
-reported 252 passing source tests across 21 files, lint/type/format/build checks, a frozen-lockfile
-installation, and all five packed-consumer combinations passing. Those checks were not rerun for
-this documentation update. Run them against the intended release commit before publication.
+The 2026-10-11 audit of commit `4574e61` passed 381 tests across 26 files, lint/type/format
+checks, the production build, basic-demo browser smoke, seven reorder-indicator cases and
+all five packed-consumer combinations below. That audit used the previous `0.0.0` metadata.
+The subsequent 0.1.0 preparation run on the working tree based on that commit also passed all
+381 tests, lint/types/format, frozen-lockfile installation and all five packed consumers with
+`data-griddle@0.1.0` installed. These are draft preparation results; rerun the release checklist
+after finalizing the intended release commit. Passing an earlier artifact is not approval to
+publish a changed one.
 
 ## Recorded consumer matrix
 
-| Consumer             | Framework version | React / React DOM                             | Recorded result (2026-09-28) |
-| -------------------- | ----------------- | --------------------------------------------- | ---------------------------- |
-| Vite                 | 8.0.12            | 18.3.1                                        | Passed                       |
-| Vite                 | 8.0.12            | 19.2.6                                        | Passed                       |
-| Next.js App Router   | 16.3.6            | 19.2.6 dependencies; framework-selected React | Passed                       |
-| Next.js Pages Router | 16.3.6            | 18.3.1                                        | Passed                       |
-| Next.js Pages Router | 16.3.6            | 19.2.6                                        | Passed                       |
+| Consumer             | Framework version | React / React DOM                             | 0.1.0 preparation (2026-10-11) |
+| -------------------- | ----------------- | --------------------------------------------- | ------------------------------ |
+| Vite                 | 8.0.12            | 18.3.1                                        | Passed                         |
+| Vite                 | 8.0.12            | 19.2.6                                        | Passed                         |
+| Next.js App Router   | 16.3.6            | 19.2.6 dependencies; framework-selected React | Passed                         |
+| Next.js Pages Router | 16.3.6            | 18.3.1                                        | Passed                         |
+| Next.js Pages Router | 16.3.6            | 19.2.6                                        | Passed                         |
 
 The record used Node 25.9.0, pnpm 10.33.0, TypeScript 6.0.2, Playwright 1.63.0 and desktop
 Chromium 153.0.8010.12. React 18 consumers used `@types/react` 18.3.31 and `@types/react-dom`
@@ -45,9 +49,25 @@ The recorded Node runtime is not a declared minimum for contributors or consumer
   The separate package NodeNext check uses `--strict --skipLibCheck false`; the framework
   exception is not a blanket declaration-validation pass. Next fixtures use the ESNext type library.
 
-The current [artifact check](../scripts/check-package.mjs) also requires `private: true`.
-Changing publication settings is part of deliberate release preparation, and requires updating
-that guard along with the package's `prepublishOnly` blocker.
+The [artifact check](../scripts/check-package.mjs) requires a publishable library with a real
+release version, public npm registry configuration, and private workspace/development-app packages.
+The library's `prepack` hook builds the library and runs that check before packing, including
+when publishing from the package directory. It does not replace the full release checklist.
+
+## Local tarball installation
+
+Before publication, build and pack from this repository:
+
+```bash
+pnpm install --frozen-lockfile
+cd packages/data-griddle
+npm pack
+# From your consuming application:
+npm install /absolute/path/to/react-data-griddle/packages/data-griddle/data-griddle-0.1.0.tgz
+```
+
+Packing runs the build/check hook using this workspace's development tools. Consumers of the
+finished tarball do not need pnpm or the build tools.
 
 ## Reproduce the checks
 
@@ -113,6 +133,7 @@ and scenario routes were removed; historical docs-site verification is not evide
 examples remain available. `pnpm check:docs` now checks the single-grid page's structure, hydration,
 editing and narrow layout. It does not check Markdown links or complete the manual matrix.
 
-CI/release automation, a required contributor Node version, representative performance measurements,
-and verification of the exact publication artifact remain outstanding. These recorded results are
-preparation evidence, not a certification of a published release.
+CI/release automation, a required contributor Node version and representative performance
+measurements are deferred for the initial release. Verification of the exact publication artifact
+and the explicitly unresolved manual support checks remain in the [release checklist](./RELEASING.md).
+These results are preparation evidence, not a certification of a published release.

@@ -8,7 +8,19 @@ assert(
 );
 const pkg = JSON.parse(readFileSync(new URL("package.json", root)));
 assert.equal(pkg.name, "data-griddle");
-assert.equal(pkg.private, true, "publication must remain disabled");
+assert.notEqual(pkg.private, true, "library must be publishable");
+assert.match(pkg.version, /^\d+\.\d+\.\d+$/);
+assert.notEqual(pkg.version, "0.0.0", "choose a release version");
+for (const path of ["../package.json", "../apps/docs/package.json"]) {
+  const workspace = JSON.parse(readFileSync(new URL(path, import.meta.url)));
+  assert.equal(
+    workspace.private,
+    true,
+    "workspace and app must remain private"
+  );
+}
+assert.equal(pkg.publishConfig.registry, "https://registry.npmjs.org/");
+assert.equal(pkg.publishConfig.access, "public");
 assert.equal(pkg.type, "module");
 assert.deepEqual(Object.keys(pkg.exports), [".", "./styles.css"]);
 assert.deepEqual(pkg.sideEffects, ["**/*.css"]);

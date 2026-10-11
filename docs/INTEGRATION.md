@@ -1,7 +1,7 @@
 # Integrating Data Griddle
 
 Import components and types from `data-griddle` and styles from `data-griddle/styles.css`.
-The local tarball is available for verification; publication remains disabled. Stores, geometry helpers,
+The `0.1.0` release is being prepared; local tarballs are available for verification. Stores, geometry helpers,
 and deep internal imports are not supported public APIs. The preview API may change.
 
 ## State ownership and defaults

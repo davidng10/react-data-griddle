@@ -1,8 +1,7 @@
 # Data Griddle - A performant React Data Grid
 
-The local app currently shows only one editable grid on a blank page. The documentation
-website and its example routes were removed at the maintainer’s request; repository guides
-remain available under `docs/`.
+Documentation lives in this README and the Markdown guides under `docs/`.
+The local development app provides one editable grid at `/`.
 
 A virtualized, DOM-based data grid for React. The component supports large datasets while keeping
 selection, editing, and pointer interactions off the main cell-rendering path.
@@ -23,18 +22,20 @@ selection, editing, and pointer interactions off the main cell-rendering path.
 
 ## Usage
 
-The ESM library lives in `packages/data-griddle`. Publication is disabled while the first
-experimental release is prepared; `0.0.0` is a local placeholder, not the chosen release version.
-Build and pack it locally, then install the tarball in your application.
+The initial release target is **0.1.0**, an experimental `0.x` release. APIs, styling contracts
+and behavior may change; pin an exact version and review release notes before upgrading.
+The command below is for the npm release; until it is published, use the local tarball workflow
+in the package verification guide.
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm build:lib
-cd packages/data-griddle
-npm pack
-# From your consuming application:
-npm install /path/to/data-griddle-0.0.0.tgz
+npm install --save-exact data-griddle@0.1.0
 ```
+
+Requires matching React and React DOM versions satisfying `^18.3.1 || ^19.2.6`.
+The package is ESM-only and targets ES2022; CommonJS is not provided. Packed consumers have been
+tested with React 18.3.1 and 19.2.6 in Vite, Next.js Pages Router, and React 19 in Next.js App Router.
+These checks use desktop Chromium; they do not establish minimum browser/OS versions or full
+mobile and screen-reader support.
 
 Import `data-griddle/styles.css` once in your application entry. The JavaScript entry does not
 automatically inject CSS. In Next.js use the root layout (App Router) or `pages/_app.tsx`.
@@ -272,9 +273,11 @@ narrow containers; the basic app does not demonstrate responsive unpinning.
 The development app consumes only public package exports. `pnpm dev` builds the library first and watches
 it alongside Next.js; restart it after changing the public export map. No Turborepo or Nx is needed.
 
-One package will support future stable and experimental npm tags. Tags, versions and Git branches
-are separate decisions; preview consumers should pin an exact version. The first release will be
-experimental, with no stable compatibility promise. Stable documentation must be deployed from a
-revision using the corresponding stable library, never silently follow experimental development.
-Both packages are private and the library also rejects `prepublishOnly`; no publication or deployment
-workflow is enabled. Release version, channel and public repository location remain deliberate gates.
+The initial release uses version `0.1.0` and the npm `latest` tag. The tag controls the default
+installation; it does not imply a stable API. Pin preview versions exactly. Documentation lives
+in this README and the repository guides; a dedicated documentation site is outside this release.
+
+See the [release checklist](./docs/RELEASING.md) for preparation status, remaining
+verification and the manual publishing procedure, and [release notes](./CHANGELOG.md)
+for the initial feature scope and limitations. The library is configured for publication;
+the workspace and development app remain private. There is no automated publishing workflow.

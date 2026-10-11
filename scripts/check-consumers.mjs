@@ -57,7 +57,12 @@ const packed = JSON.parse(
   })
 )[0];
 const tarball = join(scratch, packed.filename);
-writeFileSync(join(scratch, "pack.json"), JSON.stringify(dry, null, 2));
+assert.deepEqual(
+  packed.files.map((f) => f.path),
+  files,
+  "actual tarball must match the inspected file allowlist"
+);
+writeFileSync(join(scratch, "pack.json"), JSON.stringify(packed, null, 2));
 const matrix = [
   ["vite", "18"],
   ["vite", "19"],
@@ -123,6 +128,7 @@ try {
     const locked = existsSync(lockPath);
     if (locked) {
       const lock = JSON.parse(readFileSync(lockPath));
+      lock.packages["node_modules/data-griddle"].version = packed.version;
       lock.packages["node_modules/data-griddle"].integrity = packed.integrity;
       writeFileSync(
         join(dir, "package-lock.json"),
@@ -147,6 +153,13 @@ try {
         realpathSync(dir)
       ),
       "library must be installed, not linked to workspace"
+    );
+    assert.equal(
+      JSON.parse(
+        readFileSync(join(dir, "node_modules/data-griddle/package.json"))
+      ).version,
+      packed.version,
+      "consumer must install the packed release version"
     );
     await run("node", ["ssr.mjs"], dir, join(dir, "ssr.log"));
     console.log(`${id}: types and production build`);

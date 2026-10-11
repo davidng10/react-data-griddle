@@ -1,17 +1,21 @@
 {
   "name": "data-griddle",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "description": "A virtualized React data grid with editing, frozen columns and customizable styles.",
   "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/davidng10/react-data-grid.git",
+    "url": "git+https://github.com/davidng10/react-data-griddle.git",
     "directory": "packages/data-griddle"
   },
-  "homepage": "https://github.com/davidng10/react-data-grid#readme",
-  "bugs": "https://github.com/davidng10/react-data-grid/issues",
+  "homepage": "https://github.com/davidng10/react-data-griddle#readme",
+  "bugs": "https://github.com/davidng10/react-data-griddle/issues",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "latest"
+  },
   "keywords": [
     "react",
     "data-grid",
@@ -41,7 +45,7 @@
     "build": "node build.mjs",
     "dev": "node build.mjs --watch",
     "lint": "tsc --noEmit",
-    "prepublishOnly": "node -e \"throw new Error('Publication disabled during preparation')\""
+    "prepack": "pnpm build 1>&2 && node ../../scripts/check-package.mjs 1>&2"
   },
   "peerDependencies": {
     "react": "^18.3.1 || ^19.2.6",
