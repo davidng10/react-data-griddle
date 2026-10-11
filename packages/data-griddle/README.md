@@ -232,6 +232,8 @@ Update the value if your tunnel hostname changes. The local environment file is 
 Default styles are scoped to grid-owned classes; import `data-griddle/styles.css`. Set
 `--dgr-*` variables on the frame or an ancestor; active body-mounted editors copy their originating
 grid's theme. Columns accept `cellClassName` and `headerClassName` as strings or context callbacks.
+Cells and headers clip overflow without automatic ellipsis. Opt into truncation with application
+CSS through these classes, or style individual labels and links inside custom renderers.
 Use `rowHeight` and column widths for geometry; CSS controls appearance.
 
 See the [styling contract](https://github.com/davidng10/react-data-grid/blob/main/docs/STYLING.md) for tokens, defaults, parts, callback contexts, and

@@ -14,7 +14,6 @@
   pointer-events: none;
   overflow: hidden;
   white-space: nowrap;
-  text-overflow: ellipsis;
   opacity: 0.88;
   border-radius: 4px;
   box-shadow: 0 6px 18px rgb(0 0 0 / 22%);
@@ -78,9 +77,9 @@
 .dgr-cell,
 .dgr-header-cell,
 .dgr-pending-value {
+  /* Contain content; applications opt into ellipsis through their own styles/renderers. */
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 .dgr-header-cell > [data-resize-handle] {
   width: 5px;

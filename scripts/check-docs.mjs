@@ -68,7 +68,7 @@ try {
     "no text outside the grid"
   );
   const grid = page.getByRole("grid", { name: "People example" });
-  await grid.getByRole("gridcell", { name: "Ada", exact: true }).click();
+  await grid.getByRole("gridcell", { name: "Ada Chen", exact: true }).click();
   await page.keyboard.press("Enter");
   await page
     .getByRole("textbox", { name: "Name, row 1" })

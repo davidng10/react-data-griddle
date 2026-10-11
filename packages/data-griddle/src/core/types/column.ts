@@ -102,7 +102,7 @@ export interface Column<T> {
   headerClassName?:
     string | ((ctx: HeaderRenderContext<T>) => string | undefined);
 
-  // Render hooks. Defaults coerce values to truncated strings.
+  // Render hooks. Defaults coerce values to strings; applications own truncation styling.
   renderCell?: (ctx: CellRenderContext<T>) => ReactNode;
   renderHeader?: (ctx: HeaderRenderContext<T>) => ReactNode;
   renderEditor?: (ctx: CellEditContext<T>) => ReactNode;

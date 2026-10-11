@@ -240,5 +240,7 @@ above touch contacts and clamped to the visual viewport. Movement updates its tr
 viewport size limits; source columns stay put.
 Release, cancellation and unmount remove it, including after source-header virtualization.
 
-No built-in actions panel is rendered. Keyboard resizing and reordering remain unimplemented. Physical-device verification is separate
-from the source and Chromium touch-input regressions.
+No built-in actions panel is rendered. Keyboard column resizing and reordering are outside the
+experimental preview scope and remain unimplemented. Keyboard cell navigation, selection and
+editing remain supported. Physical-device verification is separate from the source and Chromium
+touch-input regressions.

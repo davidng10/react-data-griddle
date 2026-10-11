@@ -56,8 +56,9 @@ active cell (for example, an empty grid) uses a container outline as a fallback.
 cell outside the virtual window removes its ARIA reference, but does not enable the container
 outline. Keyboard navigation brings the active cell back into view.
 
-Keyboard-accessible column resizing/reordering remains pending. The grid does not render a built-in
-actions panel. Mouse header resizing/reordering remains available within capability and zone bounds.
+Keyboard column resizing and reordering are outside the experimental preview scope. These actions
+require mouse or touch input; keyboard cell navigation, selection and editing remain available.
+The grid does not render a built-in actions panel.
 
 ## Editing, validation and errors
 
@@ -132,9 +133,9 @@ Resize handles take priority and do not require a hold. Cancellation, an extra c
 Escape, loading, identity/geometry changes, window blur/resize or ancestor scrolling discard the
 preview. Controlled read-only order and non-reorderable columns do not claim a header hold.
 
-**Implementation gaps (2026-10-05):** keyboard column resizing and reordering still need direct
-interactions. Hold-to-select, double-tap editing and touch resizing/reordering are implemented;
-the full physical iOS/Android and assistive-technology matrix remains outstanding.
+**Preview scope (2026-10-05):** keyboard column resizing and reordering are deferred and do not
+block the experimental preview. Hold-to-select, double-tap editing and mouse/touch column actions
+are implemented; the full physical iOS/Android and assistive-technology matrix remains outstanding.
 Run `pnpm check:touch` against a running `pnpm dev` app for the
 Chromium touch-input smoke check; an optional URL selects a served production export, for example
 `pnpm check:touch http://127.0.0.1:8080`. This is browser emulation, not physical-device evidence.
@@ -212,7 +213,7 @@ automated runner binds localhost and its Chromium checks do not satisfy physical
    loading. Default editor validation announcements are separate and remain grid-provided.
    Open custom Status suggestions, choose Away, save/cancel; internal popup input must not commit early.
 5. Resize from both sides of a seam; reorder in each frozen/center zone, including barriers and
-   read-only columns. Keyboard equivalents are blocked on replacement interaction design. Verify sticky headers/bands during both
+   read-only columns using mouse input. Keyboard resizing/reordering are outside preview scope. Verify sticky headers/bands during both
    scroll axes, capture outside grid, Escape, lost capture, loading, resize and unmount interruptions.
 6. Use actual browser zoom at 200% and 400% plus OS text scaling; confirm no lost controls, readable
    errors and reachable horizontal overflow. Check default and custom light/dark themes and Windows

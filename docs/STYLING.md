@@ -103,7 +103,7 @@ use tokens for portable editor styling, or `.dgr-editor-host` for common editor 
 The drag ghost displays `column.name` and copies only the source header's font family, size,
 weight, style, foreground/background colors and text direction when dragging activates. Its
 width is capped at 240px and the visible viewport; narrower headers keep their width. Long titles
-truncate with an ellipsis while the original column width and header height stay unchanged. Its
+clip without an ellipsis while the original column width and header height stay unchanged. Its
 `.dgr-drag-ghost` class supplies padding, opacity, shadow and outline; use a global selector to
 customize these because the preview is mounted under `body`. Custom header components, controls,
 icons and pseudo-element decorations are not included in the preview.
@@ -156,6 +156,49 @@ not make it a supported customization surface. The `dgr-scroller`, `dgr-content`
 and `dgr-pending-value` helper classes are internal, not additional public styling hooks.
 Use `rowHeight` for density and column width configuration for horizontal geometry. Font size and
 padding do not increase row height automatically; choose a row height that fits your content.
+
+## Content overflow
+
+The grid owns cell dimensions and clips overflowing content. Cells and headers default to a
+single line, without automatic ellipsis. Applications own truncation, tooltips, and content layout
+through `cellClassName`, `headerClassName`, `renderCell`, and `renderHeader`. Default values,
+pending values, and column drag previews also clip without adding dots.
+
+To opt into ellipsis for a simple value or heading, add an application class:
+
+```tsx
+const columns: Column<Entry>[] = [
+  {
+    id: "name",
+    name: "Name",
+    accessor: (row) => row.name,
+    cellClassName: "truncate",
+    headerClassName: "truncate",
+  },
+];
+```
+
+```css
+.truncate {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+```
+
+For links or mixed content, apply truncation to the relevant element inside the custom renderer.
+For example, a link can use `display: block; max-width: 100%` with the styles above. In a flex
+layout, give the shrinking label `min-width: 0` and reserve space for buttons and icons. The grid
+does not inspect element types or add truncation wrappers, helper classes, or tooltips.
+
+Wrapping can be enabled with application CSS, but content must fit the configured row height;
+rows do not automatically grow. Size controls and columns to fit their content, including cell
+padding and borders. Controls that inherit the cell font should set their own line-height rather
+than inheriting the row-height line box.
+
+Migration: applications that relied on automatic ellipsis must now opt in with their own styles.
+Column classes and custom renderers apply to normal cells/headers, not the separate pending-value
+overlay or drag preview.
 
 ## Editor themes
 
