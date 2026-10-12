@@ -1,0 +1,59 @@
+name: Verify package
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Exact release SHA; otherwise use the triggering commit
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Package checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      HUSKY: "0"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm build:lib
+      - run: pnpm test
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm check:docs
+      - run: pnpm check:reorder-indicator
+      - name: Test packed consumers
+        id: consumers
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm check:consumers | tee "$RUNNER_TEMP/consumers.log"
+          evidence=$(sed -n 's/^Isolated consumers: //p' "$RUNNER_TEMP/consumers.log")
+          test -d "$evidence"
+          printf 'evidence=%s\n' "$evidence" >> "$GITHUB_OUTPUT"
+      - name: Retain the tested package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: tested-package
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            ${{ steps.consumers.outputs.evidence }}/*.tgz
+            ${{ steps.consumers.outputs.evidence }}/pack.json
+            ${{ steps.consumers.outputs.evidence }}/results.json

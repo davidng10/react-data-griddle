@@ -6,3 +6,6 @@ plan/
 **/.next/
 **/out/
 fixtures/locks/
+
+# Release Please owns the generated release notes.
+CHANGELOG.md
