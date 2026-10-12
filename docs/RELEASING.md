@@ -60,6 +60,9 @@ Repository: `davidng10/react-data-griddle` (the old `react-data-grid` URL redire
    - Repository: `react-data-griddle`
    - Workflow filename: `release.yml`
    - Environment: `npm`
+   - Allow `npm publish`: enabled
+   - Allow `npm dist-tag`: disabled (the workflow sets `latest` during publication;
+     it does not change tags on existing versions)
 
 No npm token or extra GitHub PAT is needed. Publishing uses GitHub-hosted runners,
 Node 24, npm 11, and the publish job's `id-token: write` permission. The npm package
