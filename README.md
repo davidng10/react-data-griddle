@@ -22,9 +22,9 @@ selection, editing, and pointer interactions off the main cell-rendering path.
 
 ## Usage
 
-The initial release target is **0.1.0**, an experimental `0.x` release. APIs, styling contracts
+The initial published release is **0.1.0**, an experimental `0.x` release. APIs, styling contracts
 and behavior may change; pin an exact version and review release notes before upgrading.
-The command below is for the npm release; until it is published, use the local tarball workflow
+Install the published package from npm. For local changes, use the tarball workflow
 in the package verification guide.
 
 ```bash
@@ -277,7 +277,8 @@ The initial release uses version `0.1.0` and the npm `latest` tag. The tag contr
 installation; it does not imply a stable API. Pin preview versions exactly. Documentation lives
 in this README and the repository guides; a dedicated documentation site is outside this release.
 
-See the [release checklist](./docs/RELEASING.md) for preparation status, remaining
-verification and the manual publishing procedure, and [release notes](./CHANGELOG.md)
+See the [release checklist](./docs/RELEASING.md) for the automated workflow, remaining
+verification and publishing recovery, and [release notes](./CHANGELOG.md)
 for the initial feature scope and limitations. The library is configured for publication;
-the workspace and development app remain private. There is no automated publishing workflow.
+the workspace and development app remain private. GitHub Actions prepares release PRs and
+publishes their tested packages after maintainers merge them.

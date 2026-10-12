@@ -1,110 +1,117 @@
 # Releasing Data Griddle
 
-## Initial release contract
+## Workflow
 
-- Package: `data-griddle@0.1.0`, public npm registry, `latest` tag.
-- Status: preparation only; not yet published. `latest` is the default install channel,
-  not a stable-API promise. Consumers should pin the exact version.
-- Repository: <https://github.com/davidng10/react-data-griddle> (already public).
-- Documentation: README and repository Markdown guides. No dedicated docs site or hosted demo required.
-- Scope: the features and limitations in [0.1.0 release notes](../CHANGELOG.md).
+Feature/fix branches squash into `main`. GitHub Actions runs Release Please on
+`main`, reading Conventional Commits and maintaining a release PR. Ordinary feature
+merges do not publish. Merging the release PR creates a version tag and GitHub
+Release, then validates the exact tagged commit and publishes its tested tarball.
 
-## Remaining gates
+The only publishable package is `packages/data-griddle`. The root workspace and
+`apps/docs` remain private. The root `CHANGELOG.md` is maintained by Release Please;
+it is excluded from Prettier because the generator owns its formatting.
 
-- [x] Choose version/channel, update metadata and installation instructions, and draft release notes.
-- [x] Keep the workspace/app private; make only the library publishable.
-- [x] Build and check the library during `npm pack` using `prepack`.
-- [ ] Complete or explicitly narrow the promised browser/mobile/assistive-technology coverage.
-      The [manual matrix](./ACCESSIBILITY.md#manual-release-matrix) is still open. Source semantics,
-      Chromium automation and maintainer-confirmed iPhone gestures are separate evidence; none is a
-      full support certification. Minimum browser/OS versions have not been established.
-- [ ] Review licenses, examples and dependency redistribution requirements, and complete the
-      outstanding tracked-file/history review. The tarball allowlist alone does not cover these.
-- [ ] Confirm the publishing account, name availability and authentication. On 2026-10-11,
-      `data-griddle` returned registry 404 and this machine was not authenticated; neither reserves a name.
-- [ ] Finalize the changelog date and README publication wording, commit the intended release,
-      run the checks below and retain
-      the exact tarball, its integrity, commit ID and verification results together.
-- [ ] Push the reviewed release commit to the public repository and check that the package README
-      links resolve, including the new changelog and release guide.
-- [ ] Review and explicitly authorize publication of that artifact.
-- [ ] Publish, verify a fresh registry installation, then tag the tested commit and publish release notes.
+- `ci.yml`: PR-title checks and reusable package verification. Supports explicit
+  dispatch for the bot's release PR, since `GITHUB_TOKEN` PR events do not normally
+  trigger another workflow.
+- `verify.yml`: Node 24, repository-pinned pnpm, frozen installation, source tests,
+  lint/types/formatting, docs checks, reorder checks and five packed consumers.
+  Retains the exact tested tarball, `pack.json`, and `results.json` for 30 days.
+- `release.yml`: Release Please, explicit release-PR CI dispatch, tagged-commit
+  verification and npm trusted publishing. Publication is gated on successful
+  verification. The published tarball is not rebuilt or repacked; its identity and
+  SHA-512 integrity are checked before publication and compared with npm afterward.
+  The tarball and evidence are also attached to the GitHub Release.
 
-The former local checklist marked `/verification/` complete, but that route and its smoke script
-are absent from this checkout. Use the existing [packed consumers](../fixtures/README.md) and
-add missing scenarios before claiming coverage; do not count the missing fixture as evidence.
+## Version policy
 
-Deferred beyond 0.1.0: docs website/hosted demo, automated CI/publishing, contributor templates,
-extensive performance benchmarks, source-registry distribution and keyboard column resize/reorder.
-These deferrals do not close the manual verification gate above. No new runtime feature is required
-by this release-preparation task.
+| Change                                 | Before 1.0           | From 1.0 onward      |
+| -------------------------------------- | -------------------- | -------------------- |
+| `fix:`                                 | Patch                | Patch                |
+| `feat:`                                | Minor                | Minor                |
+| Any type with `!` / `BREAKING CHANGE:` | Minor                | Major                |
+| Routine docs/tests/CI/maintenance      | No release by itself | No release by itself |
 
-## Preparation evidence (2026-10-11)
+`release-please-config.json` explicitly enables `bump-minor-pre-major` and disables
+`bump-patch-for-minor-pre-major`. A batch gets one bump based on its most significant
+change. `latest` is the default npm installation channel, not a stable-API promise.
+Consumers needing predictable pre-1.0 upgrades should pin exact versions.
 
-The working tree based on `4574e61`, with the 0.1.0 preparation changes, passed 381 source tests,
-lint/type/format checks, frozen-lockfile installation and all five isolated packed consumers.
-The consumers installed `data-griddle@0.1.0`. The preceding audit also passed the production/basic-demo
-and seven drop-indicator checks. See [package verification](./PACKAGE_VERIFICATION.md).
-This records preparation evidence, not completion of the remaining gates or a published release.
+To deliberately release 1.0.0, include `Release-As: 1.0.0` as a footer in a merged
+Conventional Commit (for example a readiness PR's squash commit), then review the
+resulting release PR. See [Release Please's release override](https://github.com/googleapis/release-please#how-do-i-change-the-version-number).
+This is a readiness decision, not a normal feature or breaking-change bump.
 
-## Validate and retain the artifact
+## One-time GitHub and npm setup
 
-From a clean checkout of the intended release commit, use pnpm 10.33.0. The recorded verification
-environment uses Node 25.9.0; a minimum contributor Node version is not established.
+Repository: `davidng10/react-data-griddle` (the old `react-data-grid` URL redirects).
 
-```bash
-pnpm install --frozen-lockfile
-pnpm exec playwright install chromium
-pnpm test
-pnpm lint
-pnpm format:check
-pnpm check:docs
-pnpm check:reorder-indicator
-pnpm check:consumers
-git rev-parse HEAD
-git status --short
-```
+1. Enable Actions and **Allow GitHub Actions to create and approve pull requests**.
+   The workflow requests only its job-specific permissions; approval of PR reviews
+   is not used by this workflow.
+2. Use squash merging, with **PR title** as the default squash commit title.
+3. Protect `main`: require a PR and the `PR title` and `Verify / Package checks`
+   checks, and require the branch to be current before merging. A sole maintainer
+   need not require another person's approval. Do not bypass failing checks.
+4. Create a GitHub environment named `npm`, restricted to `main`. No required
+   reviewer is needed: merging the release PR is the publishing decision.
+5. In the npm package's **Settings → Trusted Publisher**, select GitHub Actions:
+   - Organization/user: `davidng10`
+   - Repository: `react-data-griddle`
+   - Workflow filename: `release.yml`
+   - Environment: `npm`
+   - Allow `npm publish`: enabled
+   - Allow `npm dist-tag`: disabled (the workflow sets `latest` during publication;
+     it does not change tags on existing versions)
 
-Run `pnpm check:touch` with `pnpm dev` in another terminal for the additional Chromium touch
-smoke check. Record physical-device and assistive-technology results separately.
+No npm token or extra GitHub PAT is needed. Publishing uses GitHub-hosted runners,
+Node 24, npm 11, and the publish job's `id-token: write` permission. The npm package
+repository URL already matches this repository. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/).
 
-`check:consumers` builds and packs the library and tests that tarball in all five isolated
-consumers. It prints an `Isolated consumers:` directory containing `data-griddle-0.1.0.tgz`,
-`pack.json`, `results.json`, logs and screenshots. Copy the directory to durable release storage;
-OS temporary storage is not a release archive. Inspect the tarball allowlist and record its
-SHA-512 integrity from `pack.json`. If any shipped file changes, rerun the matrix and use the new
-artifact. Do not repack between final verification and publication.
+## Maintainer release checklist
 
-## Publish manually — only after the gates above
+1. Review the generated version, changelog and any breaking-change migration notes.
+2. Confirm CI passes and the release scope is ready. Automated Chromium checks do
+   not establish a full browser, physical-device, or screen-reader support matrix.
+   Review the [manual matrix](ACCESSIBILITY.md#manual-release-matrix) when applicable.
+   Browser/mobile/assistive-technology coverage, license/example/dependency reviews
+   and tracked-file/history review remain maintainer responsibilities; automation
+   does not close the outstanding items recorded during initial release preparation.
+3. Merge the release PR. Monitor the **Release** workflow through npm publication,
+   integrity verification and release-evidence upload.
+4. Verify a fresh registry installation in a consuming app, including the CSS
+   import, rendering, selection and editing. Record any manual-device evidence.
 
-Authenticate using the publishing account and confirm it with:
+For local touch smoke checks, run `pnpm check:touch` with `pnpm dev` in another
+terminal. This remains separate from the automated CI suite.
 
-```bash
-npm whoami --registry=https://registry.npmjs.org/
-```
+## Failed releases and retries
 
-Follow [npm's authentication requirements](https://docs.npmjs.com/creating-and-publishing-unscoped-public-packages/).
-The following commands use the retained, tested tarball; replace the absolute path with its real
-location. The dry run does not prove account permissions or reserve the package name.
+A GitHub tag/release is created before npm publication. If verification or publishing
+fails, that GitHub Release alone does not mean the package is available on npm.
+Fix account configuration or transient infrastructure errors, then use **Re-run
+failed jobs** on the original Release run so the original release outputs and SHA
+are retained. Re-running the entire workflow may find no newly created release and
+therefore skip publishing.
 
-```bash
-npm publish /absolute/path/to/data-griddle-0.1.0.tgz --dry-run --access public --tag latest --registry=https://registry.npmjs.org/
-# Actual publication, after explicit release approval:
-npm publish /absolute/path/to/data-griddle-0.1.0.tgz --access public --tag latest --registry=https://registry.npmjs.org/
-```
+If npm accepted the package but a later step failed, do not republish it. Compare
+`npm view data-griddle@VERSION dist.integrity` with `pack.json` from the retained
+artifact and attach missing evidence using `gh release upload`. If verification
+requires a shipped-code correction, release a new version. Never move a released
+tag or try to overwrite an npm version. For a faulty public release, document the
+issue and publish a correction; deprecate the affected version when appropriate.
 
-Do not publish the workspace root or all workspaces. Publishing a tarball uploads the artifact
-already tested; see [npm publish](https://docs.npmjs.com/cli/v11/commands/npm-publish/).
+## Published baseline and historical evidence
 
-After publication:
+`data-griddle@0.1.0` was published on **2026-10-11**. The registry records integrity
+`sha512-uxq4ZdC4PHYPlnk4imTybd9iQbbVQ8GEQFEcqu8WRK/eA9h02ReL4zz0oFSRtnvRaqumMgWrCqllOXG9w9NkSA==`.
+The registry does not contain `gitHead`. On 2026-10-12, every file in its tarball
+matched the rebuilt checkout at `7e8e9721730158e9faf3acf615002f343ce61cb7` byte-for-byte.
+That commit is the Release Please bootstrap boundary; the manifest starts at
+`0.1.0`. This verifies artifact equivalence, not the original publisher's provenance.
 
-1. Check `npm view data-griddle@0.1.0 version dist.integrity --registry=https://registry.npmjs.org/`
-   and compare the integrity with the retained artifact; check that `latest` points to `0.1.0`.
-2. In a fresh React application, follow the README's npm installation and CSS instructions.
-   Verify rendering, selection and editing with the registry version.
-3. Tag the exact tested commit `v0.1.0` and publish the changelog entry as release notes.
-4. Record the publication date, commit, integrity and post-publication result here.
-
-If a release is faulty, document the issue and publish a corrected version. Where needed, deprecate
-the affected version with a specific explanation; do not attempt to overwrite an existing version.
-See [npm deprecation guidance](https://docs.npmjs.com/deprecating-and-undeprecating-packages-or-package-versions/).
+The 2026-10-11 preparation run passed 381 source tests, lint/type/format checks,
+frozen-lockfile installation and all five isolated packed consumers. See
+[package verification](PACKAGE_VERIFICATION.md) and [consumer fixtures](../fixtures/README.md).
+Some manual coverage remained incomplete. The former `/verification/` route is
+absent; use current checks rather than treating that historical route as evidence.

@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+  push:
+    branches: [main]
+  # Release Please uses GITHUB_TOKEN, so explicitly dispatch CI for its PRs.
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number to validate
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  title:
+    name: PR title
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr }}
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              ...context.repo,
+              pull_number: Number(process.env.PR_NUMBER),
+            });
+            const conventional = /^(feat|fix|perf|refactor|docs|test|build|ci|chore|style|revert)(\([a-zA-Z0-9_./-]+\))?!?: \S[^\r\n]*$/;
+            if (!conventional.test(pr.title)) {
+              core.setFailed('Use a Conventional Commit PR title, e.g. "fix(keyboard): restore focus" or "feat(editing)!: change callback arguments".');
+            }
+
+  verify:
+    name: Verify
+    uses: ./.github/workflows/verify.yml

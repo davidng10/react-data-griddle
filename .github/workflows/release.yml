@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Prepare release
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: write
+    outputs:
+      created: ${{ steps.release.outputs['packages/data-griddle--release_created'] }}
+      sha: ${{ steps.release.outputs['packages/data-griddle--sha'] }}
+      tag: ${{ steps.release.outputs['packages/data-griddle--tag_name'] }}
+      version: ${{ steps.release.outputs['packages/data-griddle--version'] }}
+    steps:
+      - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
+        id: release
+        with:
+          target-branch: main
+      - name: Run CI on the release PR
+        if: steps.release.outputs.prs_created == 'true'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          RELEASE_PRS: ${{ steps.release.outputs.prs }}
+        with:
+          script: |
+            for (const pr of JSON.parse(process.env.RELEASE_PRS || '[]')) {
+              const { data } = await github.rest.pulls.get({
+                ...context.repo, pull_number: pr.number,
+              });
+              await github.rest.actions.createWorkflowDispatch({
+                ...context.repo,
+                workflow_id: 'ci.yml',
+                ref: data.head.ref,
+                inputs: { pr: String(pr.number) },
+              });
+            }
+
+  verify:
+    name: Verify release
+    needs: release
+    if: needs.release.outputs.created == 'true'
+    uses: ./.github/workflows/verify.yml
+    with:
+      ref: ${{ needs.release.outputs.sha }}
+
+  publish:
+    name: Publish to npm
+    needs: [release, verify]
+    if: needs.release.outputs.created == 'true'
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      RELEASE_VERSION: ${{ needs.release.outputs.version }}
+      RELEASE_TAG: ${{ needs.release.outputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+      - run: npm install --global npm@11
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: tested-package
+          path: artifact
+      - name: Verify artifact identity and integrity
+        working-directory: artifact
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          import { createHash } from 'node:crypto';
+          import { execFileSync } from 'node:child_process';
+          const pack = JSON.parse(readFileSync('pack.json', 'utf8'));
+          assert.equal(pack.name, 'data-griddle');
+          assert.equal(pack.version, process.env.RELEASE_VERSION);
+          assert.equal(pack.filename, `data-griddle-${pack.version}.tgz`);
+          const integrity = 'sha512-' + createHash('sha512').update(readFileSync(pack.filename)).digest('base64');
+          assert.equal(integrity, pack.integrity);
+          const manifest = JSON.parse(execFileSync('tar', ['-xOf', pack.filename, 'package/package.json'], { encoding: 'utf8' }));
+          assert.equal(manifest.name, pack.name);
+          assert.equal(manifest.version, pack.version);
+          NODE
+      - name: Publish tested tarball using npm trusted publishing
+        working-directory: artifact
+        run: npm publish "data-griddle-${RELEASE_VERSION}.tgz" --access public --tag latest --provenance --registry=https://registry.npmjs.org/
+      - name: Verify registry integrity
+        working-directory: artifact
+        run: |
+          npm view "data-griddle@${RELEASE_VERSION}" dist.integrity --json --registry=https://registry.npmjs.org/ > registry-integrity.json
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          assert.equal(JSON.parse(readFileSync('registry-integrity.json')), JSON.parse(readFileSync('pack.json')).integrity);
+          NODE
+      - name: Attach release evidence
+        working-directory: artifact
+        run: gh release upload "$RELEASE_TAG" "data-griddle-${RELEASE_VERSION}.tgz" pack.json results.json --clobber
