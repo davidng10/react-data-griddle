@@ -45,7 +45,7 @@ const roles = [
   "UX Researcher",
   "Solutions Architect",
 ];
-const departments = [
+export const departments = [
   "Platform",
   "Growth",
   "Design",

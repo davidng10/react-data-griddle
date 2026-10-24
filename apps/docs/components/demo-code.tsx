@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { Button } from "./ui/button";
+
 import type { ReactNode } from "react";
 
 type DemoCodeProps = {
@@ -28,14 +30,13 @@ export function DemoCode({ collapsible, children }: DemoCodeProps) {
               : "flex justify-center pb-3"
           }
         >
-          <button
-            type="button"
+          <Button
+            variant="primary"
             aria-expanded={expanded}
             onClick={() => setExpanded((value) => !value)}
-            className="bg-fd-primary text-fd-primary-foreground hover:bg-fd-primary/85 dark:bg-fd-secondary dark:text-fd-foreground dark:hover:bg-fd-accent rounded-full px-3 py-1 text-xs font-medium shadow-sm dark:border"
           >
             {expanded ? "Collapse code" : "Expand code"}
-          </button>
+          </Button>
         </div>
       )}
     </div>

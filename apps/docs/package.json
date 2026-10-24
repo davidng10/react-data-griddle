@@ -9,6 +9,9 @@
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@radix-ui/react-select": "2.4.1",
+    "@radix-ui/react-slider": "1.6.1",
+    "@radix-ui/react-switch": "1.4.1",
     "data-griddle": "workspace:*",
     "fumadocs-core": "16.17.8",
     "fumadocs-mdx": "15.4.10",
