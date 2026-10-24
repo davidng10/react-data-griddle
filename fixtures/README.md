@@ -1,64 +1,78 @@
 # Packed-package verification
 
-Run `pnpm exec playwright install chromium`, then `pnpm check:consumers` from the root.
-These directories are templates, deliberately excluded from the pnpm workspace.
-The script builds and packs the library, checks `npm pack --dry-run`, copies each
-consumer and the shared example into an OS temporary directory, and installs the
-actual tarball. There are no source aliases, workspace links or repository runtime
-dependencies available to the consumer. Playwright runs from the root as the driver.
+Run `pnpm exec playwright install chromium`, then `pnpm check:consumers` from the repository root.
+These directories are templates and are not part of the pnpm workspace.
 
-The matrix pins React/DOM 18.3.1 with types 18.3.31/18.3.7, or React/DOM 19.2.6
-with types 19.2.14/19.2.3. Vite is 8.0.12, Next is 16.3.6, TypeScript is 6.0.2.
-App Router runs React 19; Pages Router and Vite run both pairs. Next App Router
-uses its framework-selected React implementation, so Vite and direct Node SSR are
-the independent evidence for the declared React versions.
+The script builds and packs the library and checks `npm pack --dry-run`. It then copies each
+consumer and the shared example into an OS temporary directory and installs the real tarball there.
+Consumers get no source aliases, workspace links, or runtime dependencies from the repository.
+Playwright runs from the root and drives the tests.
 
-`locks/` pins transitive consumer dependencies. Subsequent runs use `npm ci` with
-only the local package version and tarball integrity updated to the newly built artifact. To deliberately
-refresh a fixture lock, remove that matrix entry's lock and run the check again.
-`CONSUMER_FILTER=vite-react18 pnpm check:consumers` selects a diagnostic subset;
-a partial run does not establish the full matrix.
+## Version matrix
 
-Checks: direct Node SSR without DOM globals or warnings; strict declaration checks
-with Bundler and NodeNext resolution (strict library declarations independently of
-Next Pages Router’s skipLibCheck setting; see [package verification](../docs/PACKAGE_VERIFICATION.md));
-production builds; initial Next HTML; Chromium
-hydration without errors; stylesheet retention without docs CSS; keyboard focus and
-offscreen scrolling; row selection; built-in editing; custom editor popup containment
-and body portals; initial/refresh/empty states; navigation away and back, then editing.
-Temporary directories retain install/build/type/SSR logs, lockfiles, screenshots and
-exact-version results. This is desktop Chromium evidence, not a full browser/mobile/AT
-support claim. No publish or deploy command runs.
+| Consumer          | React and React DOM | `@types/react` and `@types/react-dom` |
+| ----------------- | ------------------- | ------------------------------------- |
+| Vite              | 18.3.1, 19.2.6      | 18.3.31/18.3.7, 19.2.14/19.2.3        |
+| Next Pages Router | 18.3.1, 19.2.6      | 18.3.31/18.3.7, 19.2.14/19.2.3        |
+| Next App Router   | 19.2.6              | 19.2.14/19.2.3                        |
+
+The pinned tools are Vite 8.0.12, Next 16.3.6, and TypeScript 6.0.2. The App Router renders with
+the React build that Next bundles rather than the pinned one, so only the Vite and direct Node SSR
+runs test the declared React versions directly.
+
+`locks/` pins each consumer's transitive dependencies. Runs use `npm ci` and only update the local
+package version and tarball integrity to match the new build. To refresh a lock, delete that
+consumer's lock file and run the check again. `CONSUMER_FILTER=vite-react18 pnpm check:consumers`
+runs a single consumer for debugging, which does not cover the full matrix.
+
+## What the check covers
+
+- Direct Node SSR without DOM globals or warnings
+- Strict declaration checks with `Bundler` and `NodeNext` resolution. These check the library's
+  declarations even though the Pages Router sets `skipLibCheck`. See
+  [package verification](../docs/PACKAGE_VERIFICATION.md).
+- Production builds and the initial Next HTML
+- Chromium hydration without errors
+- The stylesheet still applying without the docs app's CSS
+- Keyboard focus and scrolling to offscreen cells
+- Row selection and built-in editing
+- A custom editor popup, both contained and in a body portal
+- Initial loading, refresh, and empty results
+- Navigating away and back, then editing
+
+Each temporary directory keeps the install, build, type-check, and SSR logs, the lock files,
+screenshots, and the exact versions tested. All of this runs in desktop Chromium only, so it says
+nothing about other browsers, mobile, or assistive technology. The script never publishes or deploys.
 
 ## Running a generated consumer manually
 
-After a successful `pnpm check:consumers` run, use the `Isolated consumers:` directory printed by
-the script. Each matrix entry is an installed, built consumer, and remains after its test server
-stops. For example, in the generated `vite-react19` directory run:
+After `pnpm check:consumers` succeeds, go to the `Isolated consumers:` directory the script prints.
+Each consumer there is installed and built, and stays in place after its test server stops. For
+example, in the `vite-react19` directory run:
 
 ```bash
 npm run start -- --port 4173
 ```
 
-Open `http://127.0.0.1:4173` and stop the server with Ctrl+C when finished. The generated Next
-consumers accept the same command. These servers bind localhost; physical-device testing requires
-a separately configured device-reachable server.
+Open `http://127.0.0.1:4173` and stop the server with Ctrl+C. The Next consumers accept the same
+command. These servers bind to localhost, so testing on a physical device needs a server the device
+can reach, which you have to set up separately.
 
-The [shared example](./shared/Example.tsx) contains default selection controls, a frozen Name column,
-offscreen focus, built-in editing, a custom Status editor, initial loading, refresh and empty results.
-It does not include the complete [manual accessibility matrix](../docs/ACCESSIBILITY.md).
-Make persistent fixture changes in `shared/Example.tsx` before rerunning the workflow; edits in an
-OS temporary directory are disposable. Extending the scenario does not itself establish support.
+The [shared example](./shared/Example.tsx) has default selection controls, a frozen Name column,
+offscreen focus, built-in editing, a custom Status editor, and initial loading, refresh, and empty
+states. It does not cover the full [manual accessibility matrix](../docs/ACCESSIBILITY.md). Make
+lasting changes in `shared/Example.tsx` and rerun the check. Edits in the temporary directory are
+thrown away.
 
 ## Editing shared examples locally
 
-Root development dependencies on `data-griddle` and `next` expose the library's
-public built exports and matching Next.js types to the editor. `fixtures/tsconfig.json` gives `shared/*.tsx`
-an explicit TypeScript project; `pnpm lint:fixtures` checks it and all three framework
-fixture projects. Each framework has a local `Example.tsx` forwarding entry; the
-consumer runner replaces it with the shared implementation before installation. Run `pnpm build:lib`
-after a fresh install, or use `pnpm dev` to keep declarations rebuilt while editing.
+The root dev dependencies on `data-griddle` and `next` give your editor the library's built public
+exports and the matching Next.js types. `fixtures/tsconfig.json` makes `shared/*.tsx` its own
+TypeScript project, and `pnpm lint:fixtures` type-checks it along with the three framework
+projects. Each framework has a local `Example.tsx` that re-exports the shared one. The consumer
+runner replaces it with the shared file before installing. After a fresh install, run
+`pnpm build:lib`, or keep `pnpm dev` running so the declarations rebuild as you edit.
 
-This local editor check is not package-consumer evidence. The parent fixture config
-is not copied into isolated consumers; their dependencies still come from the actual
-tarball and their own lockfiles. No source alias is used.
+Passing this local type check doesn't show that the packed package works. The script doesn't copy
+`fixtures/tsconfig.json` into the consumers, and they still install from the real tarball with their
+own lock files.

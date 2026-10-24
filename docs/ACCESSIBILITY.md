@@ -1,250 +1,310 @@
 # Accessibility and interaction
 
-Data Griddle's source implementation includes grid semantics, keyboard navigation, touch tap/scroll,
-hold-to-select, double-tap editing and touch column resizing/reordering. The full browser,
-physical-device and screen-reader matrix is **not yet verified**. The first release remains
-blocked on the manual matrix below. Automated tests and a browser accessibility tree do not establish
-screen-reader usability.
+The grid implements ARIA grid semantics, keyboard navigation, touch tap and scroll, hold-to-select,
+double-tap editing, and touch column resizing and reordering. None of this has been tested on the
+full set of browsers, on physical devices, or with screen readers. The
+[manual release matrix](#manual-release-matrix) below is the plan for that testing, and every entry
+in it is still unverified. Automated tests and the browser's accessibility tree don't show whether
+the grid works with a screen reader.
 
 ## Semantics and virtualization
 
-Give each grid an `aria-label` or `aria-labelledby`. The default name is “Data grid”. The scroller
-has `role="grid"`, full supplied row/column counts, and multiselection semantics. Counts include one
-header row and, when enabled, one row-selection column. The grid does not know server-side totals:
-counts describe the supplied `rows` array. Cell and row indices use one-based positions in that
-complete dataset and the resolved visual column order, including virtual-window gaps.
+Give each grid an `aria-label` or `aria-labelledby`. Without one, its name is "Data grid". The
+scroller has `role="grid"`, row and column counts for all the data you pass in, and multiselect
+semantics. The counts include the header row and, when row selection is on, the checkbox column.
+The grid doesn't know about rows that exist only on your server, so the counts describe the `rows`
+array you pass. Row and cell indices are one-based positions in that array and in the visual column
+order, so rows and columns outside the rendered window still count.
 
-Logical ARIA rows own the real rendered header/cell elements across the gutter and frozen zones
-using `aria-owns`. Custom content is not duplicated. Row `aria-selected` describes checkbox selection;
-cell `aria-selected` describes the rectangular range. Active-cell focus is separate from selection.
-`aria-readonly` reflects each cell's editing capability. The active descendant references a real,
-mounted cell. Manually scrolling that cell out of the virtual window removes the reference; returning
-it to the window restores it. Keyboard entry/navigation scrolls the active cell into view.
+Each logical ARIA row uses `aria-owns` to claim its rendered header or cell elements from the
+gutter and every zone, without duplicating custom content. On a row, `aria-selected` means the row's
+checkbox is checked. On a cell, it means the cell is inside the selected range. The active cell is
+tracked separately from selection. `aria-readonly` is true on cells that can't be edited.
+`aria-activedescendant` always points at a mounted cell. If you scroll the active cell out of the
+rendered window, the reference is removed, and it comes back when the cell is rendered again.
+Keyboard navigation scrolls the active cell into view.
 
-This ownership model needs manual testing for header association, row order and active-descendant
-announcements on every chosen AT combination. If an engine/AT fails to follow ownership, a different
-DOM layout is required before claiming support. The grid does not provide a complete, nonvirtualized
-browse-mode table or export. Applications needing one must supply a separate view.
+This `aria-owns` approach needs manual testing with each browser and screen reader pair, checking
+header association, row order, and active-cell announcements. If a pair doesn't follow `aria-owns`,
+the grid's DOM layout has to change before that pair can be supported. The grid doesn't offer a
+complete, non-virtualized table for browse mode, or an export. If you need one, render a separate
+view.
 
 ## Keyboard and focus
 
-| Input                | Behavior                                                                   |
-| -------------------- | -------------------------------------------------------------------------- |
-| Tab / Shift+Tab      | Follow browser tab order through grid, controls and page                   |
-| Arrows               | Move among selectable data cells; action/nonselectable columns are skipped |
-| Shift+Arrows         | Extend the range                                                           |
-| Ctrl/Meta+Arrows     | Move to an edge                                                            |
-| Home / End           | First/last selectable column in the current row                            |
-| Ctrl/Meta+Home / End | First/last selectable cell in the supplied dataset                         |
-| PageUp / PageDown    | Move by the visible body row count                                         |
-| Enter / F2           | Edit the active editable cell                                              |
-| Printable character  | Replace the active editable cell's draft                                   |
-| Escape               | Clear range and cancel an active pointer gesture                           |
+| Input                | Behavior                                                                |
+| -------------------- | ----------------------------------------------------------------------- |
+| Tab / Shift+Tab      | Follow the browser's tab order through the grid, its controls, and page |
+| Arrows               | Move between selectable data cells, skipping action and other columns   |
+| Shift+Arrows         | Extend the range                                                        |
+| Ctrl/Meta+Arrows     | Move to an edge                                                         |
+| Home / End           | First or last selectable column in the current row                      |
+| Ctrl/Meta+Home / End | First or last selectable cell in the data                               |
+| PageUp / PageDown    | Move by the number of visible body rows                                 |
+| Enter / F2           | Edit the active cell, if it is editable                                 |
+| Printable character  | Start editing the active cell, replacing its value with the character   |
+| Escape               | Clear the range and cancel any pointer gesture in progress              |
 
-The grid container is a tab stop for cell navigation. Rendered checkboxes and custom controls keep
-normal browser tab order and their native keys; the grid does not rewrite `tabindex`, provide an
-interaction mode, or handle F6. Tab/Shift+Tab pass through these controls before leaving the grid.
-The cell-navigation shortcuts above apply when the grid container has focus, not inside a control.
+The grid container is one tab stop for moving between cells. Checkboxes and custom controls inside
+cells keep the browser's normal tab order and their own keys. The grid doesn't change `tabindex`,
+has no separate interaction mode, and doesn't handle F6. Tab and Shift+Tab visit each rendered
+control before leaving the grid. The shortcuts above only work while the grid container itself has
+focus, not while a control inside a cell does.
 
-Only mounted controls exist. Their tab sequence follows DOM order across frozen zones, which can
-have more stops and differ from visual row order. This is a minimal native-tab implementation, not
-the single-tab-stop composite-grid pattern. Custom content owns focusability, accessible names and
-visible focus; avoid positive tabindex. There is no grid-level copy/paste, sorting or filtering shortcut.
+Only rendered controls can take focus. They are visited in DOM order, zone by zone, so the tab
+order can have more stops than expected and can differ from the visual row order. The grid doesn't
+implement the single-tab-stop composite grid pattern from the ARIA guide. Custom content must make
+itself focusable, give itself an accessible name, and show its own focus. Don't use a positive
+`tabindex`. The grid has no copy, paste, sort, or filter shortcuts.
 
-The active cell border supplies the focus indicator. A keyboard-focused grid without a logical
-active cell (for example, an empty grid) uses a container outline as a fallback. Scrolling a focused
-cell outside the virtual window removes its ARIA reference, but does not enable the container
-outline. Keyboard navigation brings the active cell back into view.
+The active cell's border is the focus indicator. If the grid has focus but no active cell, as in an
+empty grid, the container shows an outline instead. Scrolling a focused cell out of the rendered
+window removes its ARIA reference but doesn't show the container outline. The next arrow key brings
+the active cell back into view.
 
-Keyboard column resizing and reordering are outside the experimental preview scope. These actions
-require mouse or touch input; keyboard cell navigation, selection and editing remain available.
-The grid does not render a built-in actions panel.
+Column resizing and reordering don't work from the keyboard yet. They need a mouse or touch.
+Keyboard navigation, selection, and editing all work. The grid has no built-in actions menu.
 
 ## Editing, validation and errors
 
-Built-in editors are named “Column name, row N”. Text-editor Enter saves and moves down;
-Shift+Enter inserts a newline; Tab/Shift+Tab save and move right/left; Escape cancels. Commit/cancel
-keys are ignored during composition (including the key-code 229 fallback). Save edit and Cancel edit
-buttons provide explicit touch actions. Native select changes retain their immediate-save behavior.
+Built-in editors are named "Column name, row N". In the text editor, Enter saves and moves down,
+Shift+Enter inserts a newline, Tab and Shift+Tab save and move right or left, and Escape cancels.
+The editor ignores these keys while an IME composition is active, including the key-code 229
+fallback. The Save edit and Cancel edit buttons give touch users an explicit way to finish. A
+native select saves as soon as its value changes.
 
-Explicit validation failures keep the editor open, associate the error with its input, and announce
-it. Leaving the default editor host implicitly commits according to the existing validation policy:
-an invalid implicit draft is discarded. Moving among its input and action buttons does not save.
-Explicit save/cancel restores grid focus; leaving for an outside control does not steal that focus.
+When an explicit save fails validation, the editor stays open, links the error message to its
+input, and announces it. Leaving the default editor saves the draft, subject to validation, and an
+invalid draft is discarded. Moving focus between the input and the editor's buttons doesn't save.
+Saving or cancelling explicitly returns focus to the grid. Leaving for a control outside the grid
+leaves focus on that control.
 
-Asynchronous failures clear the pending display, briefly mark the failed cell and call
-`onCellCommitError({ update, error })`. The editor has already closed; application rows are never
-mutated or rolled back by the grid. **The application owns accessible save-error feedback**:
-provide a visible message and an appropriate live region through that callback, outside any loading
-or inert subtree. The grid does not announce save failures automatically. See the
-[integration example](./INTEGRATION.md#application-owned-save-error-feedback).
-Pending visual values are hidden from the accessibility tree to avoid duplicate cells;
-authoritative row content remains exposed until the application updates.
+When an asynchronous save fails, the grid clears the pending value, briefly marks the cell, and
+calls `onCellCommitError({ update, error })`. By then the editor has closed. The grid never changes
+or rolls back your rows. The grid doesn't announce save failures, so your application has to: show
+a visible message and update a live region from that callback, outside anything that becomes inert
+during loading. See the
+[integration example](./INTEGRATION.md#application-owned-save-error-feedback). Pending values are
+hidden from the accessibility tree so cells aren't announced twice. Assistive technology reads the
+current row value until your application updates it.
 
-The body-mounted editor follows ancestor scrolling, window/container resize and visual viewport
-changes. Built-in editor frames clamp to the visible viewport and scroll internally when needed.
-Custom popups remain inside their editor host and retain overflow behavior. Custom editors own
-input labels, validation associations, composition handling, keyboard exit, popup sizing, explicit
-save/cancel controls and focus. Test them independently, including with the on-screen keyboard.
+The editor is mounted in `document.body` and follows scrolling of any ancestor, window and
+container resizes, and visual viewport changes. Built-in editor frames stay inside the visible
+viewport and scroll internally if needed. Custom popups stay inside their editor host and keep
+their own overflow behavior. Custom editors are responsible for input labels, linking validation
+messages, IME composition, keyboard exit, popup sizing, save and cancel controls, and focus. Test
+each one on its own, including with an on-screen keyboard.
 
 ## Touch and narrow layouts
 
-Swipe immediately on cells or headers outside resize handles to scroll normally. A short tap within 8px without scrolling
-focuses a cell. Native/custom controls retain their normal
-activation and scrolling behavior.
+### Scrolling and tapping
 
-Double-tap an editable cell to open its editor: start the second tap within 300 ms of the first
-release, on the same cell and within 24px. Each contact must stay within 8px and end before the
-500 ms hold activates. The editor opens and focuses on the second release. Use its Save/Cancel
-buttons; native select changes save immediately. Read-only cells and cells awaiting a commit do
-not open an editor. A swipe, hold, scroll, interruption or intervening input breaks the tap pair.
-Cells reserve double-tap for editing while retaining native panning and pinch zoom.
-Built-in text/select editors preserve the configured font size and focus with `preventScroll: true`.
-The portal positions the editor within the visual viewport; native focus need not scroll or zoom
-the page to reveal it. Confirm this behavior on the target iOS version when testing keyboard entry.
+A swipe on a cell or header, outside the resize handles, scrolls normally. A tap that moves less
+than 8px and doesn't scroll focuses the cell. Native and custom controls keep their normal
+activation and scrolling.
 
-Hold a selectable cell for 500 ms, staying within 8px, to start a range. A one-cell highlight marks
-activation. Keep the finger down and drag to extend across cells and frozen zones. After crossing a
-cell, moving near the edges scrolls the grid automatically. Lift to retain the range; the next
-ordinary swipe scrolls again without changing that selection. A short tap focuses a new cell and
-clears the range. There is no control panel or persistent touch selection mode.
+### Double-tap editing
 
-Moving more than 8px or scrolling before activation cancels the hold, even if the finger returns.
-An extra contact, pointer cancellation/lost capture, Escape, loading, changed row identities/order
-or column geometry, window blur/resize, or ancestor scrolling stops the gesture and its auto-scroll.
-Updating row values with the same identities/order does not by itself cancel selection. Cancellation
-retains the last range unless another operation clears or reconciles it (for example Escape or row
-removal). Native browser menus are suppressed during the claimed cell hold; controls keep theirs.
-If the browser has already taken over scrolling, the grid abandons selection instead of fighting it.
+Double-tap an editable cell to open its editor. The second tap must start within 300 ms of the
+first one ending, on the same cell, and within 24px of it. Each tap must move less than 8px and end
+before the 500 ms hold starts. The editor opens and takes focus when the second tap ends. Use its
+Save and Cancel buttons, or change a native select to save immediately. Double-tapping a read-only
+cell or a cell waiting on a save does nothing. A swipe, a hold, a scroll, an interruption, or other
+input between the taps cancels the double tap. Cells use double tap for editing but still allow
+native panning and pinch zoom.
 
-Drag a column-edge handle to resize immediately, without holding. A guide previews the width;
-lifting commits once within the column's minimum/maximum limits. On coarse-pointer devices each
-handle has a 12px invisible hit area inside the header. Only these handles reserve touch dragging;
-the rest of the header permits native scrolling. Cancellation, lost capture, another contact,
-Escape, loading, source identity changes, window blur or resize discard the preview. Read-only
-widths and non-resizable/action columns do not expose resize handles.
+The built-in text and select editors keep the grid's font size and focus with
+`preventScroll: true`. The portal positions the editor inside the visual viewport, so the browser
+shouldn't need to scroll or zoom to show it. Check this on each iOS version you test with the
+on-screen keyboard.
 
-Hold an eligible header for 500 ms, staying within 8px, until an insertion guide and floating header copy appear. The copy follows your finger,
-offset upward where viewport space permits. Drag and release to reorder once within its frozen/center zone. Action columns and explicit reorder barriers
-cannot be crossed. After dragging begins, the center zone scrolls horizontally near its edges to
-reach offscreen columns; a stationary hold does not scroll or change order. Returning to the source
-is a no-op. Immediate swipes keep native scrolling; embedded controls keep native activation.
-Resize handles take priority and do not require a hold. Cancellation, an extra contact, lost capture,
-Escape, loading, identity/geometry changes, window blur/resize or ancestor scrolling discard the
-preview. Controlled read-only order and non-reorderable columns do not claim a header hold.
+### Range selection
 
-**Preview scope (2026-10-05):** keyboard column resizing and reordering are deferred and do not
-block the experimental preview. Hold-to-select, double-tap editing and mouse/touch column actions
-are implemented; the full physical iOS/Android and assistive-technology matrix remains outstanding.
-Run `pnpm check:touch` against a running `pnpm dev` app for the
-Chromium touch-input smoke check; an optional URL selects a served production export, for example
-`pnpm check:touch http://127.0.0.1:8080`. This is browser emulation, not physical-device evidence.
-`pnpm check:reorder-indicator` runs standalone Chromium fixtures that check the guide's painted
-pixels and drop results beside the checkbox gutter and at both ends of every frozen/center zone.
-The checkbox gutter stays fixed; the first data-column drop position is immediately after it.
+Hold a selectable cell for 500 ms, moving less than 8px, to start a range. A one-cell highlight
+shows that the hold worked. Keep your finger down and drag to extend the range, including across
+frozen zones. Once you've crossed into another cell, moving near an edge scrolls the grid. Lift
+your finger to keep the range. The next normal swipe scrolls without changing it. A short tap on
+another cell focuses it and clears the range. There is no persistent touch selection mode.
 
-Default checkboxes are 16px controls inside labels covering their gutter cell (40px wide); choose
-`rowHeight` 44 or larger for taller row targets. Replacement controls must provide usable targets.
+Moving more than 8px or scrolling before the hold completes cancels it, even if your finger moves
+back. The following stop the gesture and its auto-scroll:
 
-Keep frozen widths plus gutter below container width, leaving useful center space. The grid never
-silently unpins consumer columns. Use container-aware column props for narrow layouts/orientation.
-For example, a consumer can use 44px rows and narrow or unpin columns below a chosen container
-width. This responsive scenario is not included in the basic app or packed fixture. Test both
-frozen bands at wider widths and transitions with an active editor/selection.
+- A second finger
+- `pointercancel` or lost pointer capture
+- Escape
+- Loading starting
+- Changes to row IDs, row order, or column geometry
+- The window losing focus or resizing
+- An ancestor scrolling
 
-**Pen scope:** pen-driven grid drag manipulation is excluded from the current preview implementation
-and is not a support claim. Native controls can receive pen activation. Decide and verify dedicated
-pen gestures separately; do not infer them from mouse or touch results.
+Changing row values without changing row IDs or order doesn't cancel the selection. When a gesture
+is cancelled, the range it reached stays selected until something else clears or adjusts it, such
+as Escape or removing the row. During a cell hold, the grid suppresses the browser's context menu,
+but controls keep theirs. If the browser has already started scrolling, the grid gives up on the
+selection.
+
+### Column resizing
+
+Drag a column edge handle to resize straight away, without a hold. A guide shows the new width, and
+lifting your finger applies it once, within the column's `minWidth` and `maxWidth`. On
+coarse-pointer devices each handle has an invisible 12px hit area inside the header. Only the
+handles block native scrolling, so swiping elsewhere on a header scrolls. Lost capture, a second
+finger, Escape, loading, a change to the column, or the window losing focus or resizing discards
+the resize. Columns with read-only widths, non-resizable columns, and action columns have no
+handles.
+
+### Column reordering
+
+Hold a header for 500 ms, moving less than 8px, until an insertion guide and a floating copy of the
+header appear. The copy follows your finger, shifted up when there's room. Drag and release to move
+the column within its zone. A column can't move past an action column or a reorder barrier. While
+dragging, moving near the edge of the center zone scrolls it horizontally to reach offscreen
+columns. Holding still doesn't scroll or move anything. Dropping a column where it started does
+nothing. Swiping without a hold scrolls normally, and controls in the header still respond to taps.
+Resize handles take priority and don't need a hold. A second finger, lost capture, Escape, loading,
+changes to IDs or geometry, the window losing focus or resizing, or an ancestor scrolling cancels
+the reorder. Columns with a read-only order and non-reorderable columns don't respond to a hold.
+
+### Automated touch checks
+
+`pnpm check:touch` runs Chromium touch emulation against a running `pnpm dev` app. Pass a URL to
+test a served production build instead, for example `pnpm check:touch http://127.0.0.1:8080`, or
+`--export` to serve `apps/docs/out` itself, as CI does. This
+is emulation, not a physical device. `pnpm check:reorder-indicator` runs standalone Chromium pages
+that check the guide's painted pixels and the drop results next to the checkbox gutter and at both
+ends of each zone. The checkbox gutter never moves, and the first drop position for a data column
+is directly after it.
+
+### Target sizes and narrow layouts
+
+Default checkboxes are 16px, inside labels that cover their 40px-wide gutter cell. For taller touch
+targets, set `rowHeight` to 44 or more. Replacement checkboxes need their own adequate targets.
+
+Keep the total width of frozen columns and the gutter well below the container width, so the center
+zone still has room. The grid never unpins your columns. For narrow layouts and orientation
+changes, change the column props based on container width. For example, use 44px rows and narrow
+or unpin columns below a width you choose. Neither the dev app nor the packed fixture shows this.
+Test both frozen zones at wider widths, and test switching layouts while an editor or selection is
+active.
+
+### Pens
+
+The grid doesn't support pen drag gestures. Native controls still respond to a pen tap. Mouse and
+touch test results say nothing about pens, so pen gestures need their own design and testing.
 
 ## Manual release matrix
 
-Record date, commit, browser/OS/device versions, AT version/settings, input method, exact scenario,
-observed result and pass/fail for each entry. No minimum supported versions are established yet.
+For each entry, record the date, commit, browser, OS, and device versions, the assistive technology
+version and settings, the input method, the exact scenario, what happened, and whether it passed.
+No minimum supported versions are set yet.
 
-| Environment             | Required checks                                    | Current status (2026-09-27)                           |
-| ----------------------- | -------------------------------------------------- | ----------------------------------------------------- |
-| Desktop Chrome          | All desktop steps; NVDA on Windows                 | Unverified; Brave smoke checks are not Chrome support |
-| Desktop Edge            | All desktop steps; Narrator and/or NVDA on Windows | Unverified                                            |
-| Desktop Firefox         | All desktop steps; NVDA on Windows                 | Unverified                                            |
-| Desktop Safari          | All desktop steps; VoiceOver on macOS              | Unverified                                            |
-| Physical iOS Safari     | All mobile steps; VoiceOver                        | Unverified                                            |
-| Physical Android Chrome | All mobile steps; TalkBack                         | Unverified                                            |
-| Windows forced colors   | Focus, selection, controls, errors and editing     | CSS implemented; manual verification pending          |
+| Environment             | Required checks                                    | Status (2026-09-27)                                    |
+| ----------------------- | -------------------------------------------------- | ------------------------------------------------------ |
+| Desktop Chrome          | All desktop steps; NVDA on Windows                 | Unverified. Brave smoke checks don't count for Chrome. |
+| Desktop Edge            | All desktop steps; Narrator and/or NVDA on Windows | Unverified                                             |
+| Desktop Firefox         | All desktop steps; NVDA on Windows                 | Unverified                                             |
+| Desktop Safari          | All desktop steps; VoiceOver on macOS              | Unverified                                             |
+| Physical iOS Safari     | All mobile steps; VoiceOver                        | Unverified                                             |
+| Physical Android Chrome | All mobile steps; TalkBack                         | Unverified                                             |
+| Windows forced colors   | Focus, selection, controls, errors and editing     | CSS written, not tested                                |
 
 ### Prepare a manual test consumer
 
-Run `pnpm dev` and open `/` for basic navigation, native selection and text editing. For a broader
-starting point, use the [packed-consumer workflow](./PACKAGE_VERIFICATION.md) and
-[manual fixture instructions](../fixtures/README.md#running-a-generated-consumer-manually).
-Its shared example includes a frozen Name column, offscreen focus buttons, native checkboxes,
-a custom Status editor, initial loading, a refresh toggle and an empty-results button.
+Run `pnpm dev` and open `/` to test basic navigation, row selection, and text editing. For more
+scenarios, use the [packed-consumer workflow](./PACKAGE_VERIFICATION.md) and the
+[manual fixture instructions](../fixtures/README.md#running-a-generated-consumer-manually). The
+shared example has a frozen Name column, buttons that focus offscreen cells, native checkboxes, a
+custom Status editor, initial loading, a refresh toggle, and an empty-results button.
 
-The former integration, styling and loading demo routes are removed. Neither the basic app nor the
-packed example covers this entire matrix. Before testing, add the required scenarios to a consumer
-using public APIs: both frozen bands and horizontal overflow, custom/mixed/read-only controls,
-action/reorder barriers, native select and validation, delayed/rejected commits with accessible
-feedback, row/column removal and reversal, multiple themes/grids, nested scrolling, responsive
-unpinning and long editor content. The [integration](./INTEGRATION.md), [styling](./STYLING.md) and
-[loading](./LOADING.md) guides describe the contracts to use.
+Neither the dev app nor the packed example covers the whole matrix. Before testing, build these
+scenarios into a consumer with the public API:
 
-Record the consumer revision/configuration with each result. Mark a scenario blocked when its
-fixture or required interaction is missing; do not count the basic app smoke check as a matrix pass.
-Physical-device testing also requires serving the consumer at a device-reachable address; the
-automated runner binds localhost and its Chromium checks do not satisfy physical-device testing.
+- Both frozen zones, with horizontal overflow
+- Custom, mixed, and read-only controls
+- Action columns and reorder barriers
+- A native select and validation
+- Slow and rejected saves, with accessible error feedback
+- Removing and reversing rows and columns
+- Several grids with different themes
+- Nested scrolling
+- Unpinning columns on narrow screens
+- Long editor content
+
+The [integration](./INTEGRATION.md), [styling](./STYLING.md), and [loading](./LOADING.md) guides
+describe the APIs to use.
+
+Record the consumer's revision and configuration with each result. If a scenario's fixture or
+interaction is missing, mark it blocked. A smoke check of the dev app doesn't count as a pass. To
+test on a physical device, serve the consumer at an address the device can reach. The automated
+runner binds to localhost, and its Chromium checks don't count as device testing.
 
 ### Desktop steps
 
-1. Tab from outside into/out of the grid in both directions. Check visible focus before any cell
-   selection. Exercise every key above, empty data, all-nonselectable columns, first/last cells,
-   offscreen rows/columns, multiple grids, and row reversal/removal. Verify active references never
-   point to missing elements. Tab/Shift+Tab through default/custom controls and out to the page;
-   confirm native keys work and focus remains visible as controls enter the virtual window.
-2. With each AT, confirm grid name/counts; one logical row spanning both frozen bands; column header
-   association; current cell value/position/read-only state; range and row selection. Scroll both
-   axes through virtual-window gaps and navigate offscreen. Confirm no duplicate rows or content.
-   Manually scroll the active cell away and back; confirm navigation remains understandable.
-3. Test default **and custom** checkboxes: no selection, one row (mixed header), all rows, mixed→clear,
-   Space/Enter as appropriate, Tab/Shift+Tab, read-only and loading. AT must announce name, checked/mixed,
-   disabled/read-only state. Confirm one activation produces one selection update.
-4. Edit text and native select values; cancel, unchanged save, invalid explicit save, corrected save,
-   implicit invalid discard, rejected async save (including while loading) and row disappearance.
-   Confirm field/error names, visible errors and correct focus destination. For async rejection,
-   wire application feedback through `onCellCommitError` and verify its announcement, including while
-   loading. Default editor validation announcements are separate and remain grid-provided.
-   Open custom Status suggestions, choose Away, save/cancel; internal popup input must not commit early.
-5. Resize from both sides of a seam; reorder in each frozen/center zone, including barriers and
-   read-only columns using mouse input. Keyboard resizing/reordering are outside preview scope. Verify sticky headers/bands during both
-   scroll axes, capture outside grid, Escape, lost capture, loading, resize and unmount interruptions.
-6. Use actual browser zoom at 200% and 400% plus OS text scaling; confirm no lost controls, readable
-   errors and reachable horizontal overflow. Check default and custom light/dark themes and Windows
-   forced colors: focus/ranges/errors must remain distinguishable without background color alone.
-   Inspect long/multiline editor content and popup placement while page and nested ancestors scroll.
+1. Tab into and out of the grid from outside, in both directions. Check that focus is visible
+   before any cell is selected. Try every key in the table above, with empty data, with only
+   non-selectable columns, at the first and last cells, on offscreen rows and columns, with several
+   grids, and after reversing or removing rows. Check that the active reference never points at a
+   missing element. Tab and Shift+Tab through default and custom controls and out to the page.
+   Check that native keys work and that focus stays visible as controls scroll into view.
+2. With each screen reader, check the grid's name and counts, that one logical row spans both
+   frozen zones, column header association, the current cell's value, position, and read-only
+   state, and range and row selection. Scroll both axes through unrendered areas and navigate to
+   offscreen cells. Check that no rows or content are read twice. Scroll the active cell away and
+   back by hand, and check that navigation still makes sense.
+3. Test both default and custom checkboxes with no rows selected, one row selected (header shows
+   mixed), all rows selected, and clearing a mixed selection. Use Space or Enter as appropriate, Tab
+   and Shift+Tab, read-only state, and loading. The screen reader must announce the name, the
+   checked or mixed state, and the disabled or read-only state. Check that one activation causes
+   one selection update.
+4. Edit text and native select values. Try cancelling, saving with no change, saving an invalid
+   value explicitly, then a corrected value, leaving with an invalid value so it's discarded, a
+   rejected async save (also while loading), and the row disappearing. Check the field and error
+   names, the visible errors, and where focus goes. For async rejection, report the error through
+   `onCellCommitError` in your application and check that it's announced, also while loading. The
+   grid announces the default editor's validation errors itself. Open the custom Status
+   suggestions, choose Away, and save or cancel. Typing in the popup must not save early.
+5. With a mouse, resize from both sides of a zone boundary, and reorder within each zone, including
+   with barriers and read-only columns. Keyboard resizing and reordering aren't supported. Check
+   that sticky headers and frozen zones hold while scrolling both axes. Interrupt gestures by
+   releasing outside the grid, pressing Escape, losing capture, loading, resizing, and unmounting.
+6. Use real browser zoom at 200% and 400%, and OS text scaling. Check that no controls are lost,
+   errors are readable, and horizontal overflow can be reached. Check the default theme, custom
+   light and dark themes, and Windows forced colors. Focus, ranges, and errors must be
+   distinguishable without relying on background color. Check long and multiline editor content and
+   popup placement while the page and nested ancestors scroll.
 
-Physical mobile steps (desktop viewport emulation does not satisfy these):
+### Physical mobile steps
 
-1. On named iOS/Android devices, scroll the page, grid vertically and horizontally, start swipes in
-   cells/headers/gutter, pinch zoom, tap and double-tap. No swipe should create a range or open an
-   editor. Verify native/custom checkbox targets, mixed and read-only states with touch and AT.
-2. Double-tap an editable cell and type with the on-screen keyboard. Confirm a single tap only
-   focuses, distant/slow taps do not edit, and holds/swipes never open an editor. Test opening/closing/changing
-   keyboard, predictive text, Japanese/Chinese/Korean IME candidates, dictation, emoji, select picker,
-   native copy/paste, Save and Cancel. Candidate-confirmation Enter must not save prematurely.
-3. Hold a cell for 500 ms until its range highlight appears, then drag across zones and beyond
-   all edges; verify edge scrolling and range, including after the starting row is virtualized out. Release
-   and immediately pan normally. Repeat with pointercancel, lost capture, a second finger both inside
-   and outside the grid, app switch, loading, data changes and orientation changes. No stuck capture,
-   continuing scroll loop, accidental editor or resize/reorder commit is acceptable.
-4. Drag resize handles on both sides of boundaries and in frozen bands. Resize to limits and cancel
-   mid-interaction without committing. Confirm header swipes outside handles still scroll. Repeat
-   with controlled read-only state and action columns. Hold a header until the insertion guide appears,
-   drag across columns in each zone, test barriers and return-to-source, then release or cancel.
-   Drag toward the center edges to reach offscreen columns, including after the source header is
-   virtualized out. Confirm the next immediate header swipe scrolls normally.
-5. Test 320–430px portrait widths, landscape, device rotation, large fonts, both frozen bands and
-   responsive unpinning. With AT active, use touch exploration and gesture navigation to complete
-   selection, editing and column actions. Record usability findings, not only attribute inspection.
+Desktop viewport emulation doesn't count for these.
 
-Implementation references: [ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/),
+1. On named iOS and Android devices, scroll the page and the grid in both directions. Start swipes
+   on cells, headers, and the gutter, pinch zoom, tap, and double-tap. No swipe should create a
+   range or open an editor. Check native and custom checkbox targets, and the mixed and read-only
+   states, with touch and with a screen reader.
+2. Double-tap an editable cell and type with the on-screen keyboard. Check that a single tap only
+   focuses, that taps too far apart or too slow don't edit, and that holds and swipes never open an
+   editor. Test opening, closing, and switching keyboards, predictive text, Japanese, Chinese, and
+   Korean IME candidates, dictation, emoji, the select picker, native copy and paste, and Save and
+   Cancel. Pressing Enter to confirm an IME candidate must not save.
+3. Hold a cell for 500 ms until the highlight appears, then drag across zones and past every edge.
+   Check edge scrolling and the range, including after the starting row scrolls out of the rendered
+   window. Release and pan normally straight away. Repeat with `pointercancel`, lost capture, a
+   second finger inside and outside the grid, switching apps, loading, data changes, and rotation.
+   Capture must never get stuck, scrolling must stop, and no editor, resize, or reorder may happen
+   by accident.
+4. Drag resize handles on both sides of zone boundaries and in frozen zones. Resize to the limits,
+   and cancel partway without applying the width. Check that swiping a header outside the handles
+   still scrolls. Repeat with read-only widths and action columns. Hold a header until the guide
+   appears, drag across columns in each zone, test barriers and dropping on the starting position,
+   then release or cancel. Drag toward the center zone's edges to reach offscreen columns, including
+   after the source header scrolls out of the rendered window. Check that the next header swipe
+   scrolls normally.
+5. Test portrait widths from 320px to 430px, landscape, rotating the device, large fonts, both
+   frozen zones, and unpinning on narrow screens. With a screen reader on, use touch exploration and
+   gesture navigation to select, edit, and resize and reorder columns. Record whether these tasks
+   are usable, not only which attributes are present.
+
+References: [ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/),
 [virtual grid indices](https://www.w3.org/WAI/ARIA/apg/practices/grid-and-table-properties/),
 [touch-action](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/touch-action),
 [visual viewport](https://developer.mozilla.org/en-US/docs/Web/API/VisualViewport).

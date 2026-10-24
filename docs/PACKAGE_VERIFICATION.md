@@ -1,62 +1,57 @@
 # Package verification
 
-Data Griddle is being prepared for its first npm release, `0.1.0` on the `latest` tag.
-The library is configured for publication; no package has been published by this preparation.
-See the [release checklist](./RELEASING.md) for the outstanding gates.
+`data-griddle@0.1.0` is published on npm under the `latest` tag. CI runs the checks below on every
+PR and before each release. See the [release checklist](./RELEASING.md) for the release workflow.
 
-The 2026-10-11 audit of commit `4574e61` passed 381 tests across 26 files, lint/type/format
-checks, the production build, basic-demo browser smoke, seven reorder-indicator cases and
-all five packed-consumer combinations below. That audit used the previous `0.0.0` metadata.
-The subsequent 0.1.0 preparation run on the working tree based on that commit also passed all
-381 tests, lint/types/format, frozen-lockfile installation and all five packed consumers with
-`data-griddle@0.1.0` installed. These are draft preparation results; rerun the release checklist
-after finalizing the intended release commit. Passing an earlier artifact is not approval to
-publish a changed one.
+## Last recorded run
 
-## Recorded consumer matrix
+On 2026-10-11, the working tree for the 0.1.0 release passed 381 tests across 26 files, lint, type
+and format checks, a frozen-lockfile install, the production build, a browser smoke test of the dev
+app, seven reorder-indicator cases, and all five packed consumers below. CI reruns these checks, so
+treat this table as a record of that run, not of the current commit.
 
-| Consumer             | Framework version | React / React DOM                             | 0.1.0 preparation (2026-10-11) |
-| -------------------- | ----------------- | --------------------------------------------- | ------------------------------ |
-| Vite                 | 8.0.12            | 18.3.1                                        | Passed                         |
-| Vite                 | 8.0.12            | 19.2.6                                        | Passed                         |
-| Next.js App Router   | 16.3.6            | 19.2.6 dependencies; framework-selected React | Passed                         |
-| Next.js Pages Router | 16.3.6            | 18.3.1                                        | Passed                         |
-| Next.js Pages Router | 16.3.6            | 19.2.6                                        | Passed                         |
+| Consumer             | Framework version | React and React DOM                            | Result |
+| -------------------- | ----------------- | ---------------------------------------------- | ------ |
+| Vite                 | 8.0.12            | 18.3.1                                         | Passed |
+| Vite                 | 8.0.12            | 19.2.6                                         | Passed |
+| Next.js App Router   | 16.3.6            | 19.2.6 installed, Next's bundled React renders | Passed |
+| Next.js Pages Router | 16.3.6            | 18.3.1                                         | Passed |
+| Next.js Pages Router | 16.3.6            | 19.2.6                                         | Passed |
 
-The record used Node 25.9.0, pnpm 10.33.0, TypeScript 6.0.2, Playwright 1.63.0 and desktop
-Chromium 153.0.8010.12. React 18 consumers used `@types/react` 18.3.31 and `@types/react-dom`
-18.3.7; React 19 consumers used 19.2.14 and 19.2.3 respectively. The runtime dependency is
-`@tanstack/react-virtual` 3.14.2. Fixture lockfiles pin transitive dependencies.
+The run used Node 25.9.0, pnpm 10.33.0, TypeScript 6.0.2, Playwright 1.63.0, and desktop Chromium
+153.0.8010.12. React 18 consumers used `@types/react` 18.3.31 and `@types/react-dom` 18.3.7. React 19
+consumers used 19.2.14 and 19.2.3. The only runtime dependency is `@tanstack/react-virtual` 3.14.2.
+Fixture lock files pin transitive dependencies.
 
-The package declares matching React/DOM peers `^18.3.1 || ^19.2.6`. The matrix tests these
-endpoints, not every version accepted by those ranges. App Router uses its framework-selected
-React implementation; Vite and direct Node SSR provide independent checks of the installed React
-versions. No older Next.js versions or minimum browser/OS versions are established by this run.
-The recorded Node runtime is not a declared minimum for contributors or consumers.
+The package's peer range for matching `react` and `react-dom` is `^18.3.1 || ^19.2.6`. The matrix
+tests the lower end of each major, not every version in the range. The App Router renders with
+Next's bundled React, so only the Vite and direct Node SSR runs test the installed React versions.
+No older Next.js versions or minimum browser or OS versions are tested. The project declares no
+minimum Node version for contributors or consumers. CI uses Node 24.
 
 ## Artifact and type contract
 
-- The library is ESM-only, built for ES2022, with public exports `data-griddle` and
-  `data-griddle/styles.css`. CommonJS is not provided.
-- JavaScript preserves `"use client"`; React, React DOM and TanStack Virtual remain external.
-  React/DOM are peers and TanStack Virtual is a runtime dependency.
-- TypeScript declarations include the CSS entry. CSS is marked as a side effect and must be
-  imported explicitly; the JavaScript entry does not inject it.
-- Packed files are limited to `dist/`, package metadata, README and LICENSE. Source tests,
-  development-app assets, coverage and unrelated configuration are excluded.
-- Declaration checks cover Bundler and NodeNext resolution. The Next.js Pages fixture uses
-  `skipLibCheck` for framework types, including Next's React 19 shared types with React 18.
-  The separate package NodeNext check uses `--strict --skipLibCheck false`; the framework
-  exception is not a blanket declaration-validation pass. Next fixtures use the ESNext type library.
+- The library ships ESM only, built for ES2022, with two exports: `data-griddle` and
+  `data-griddle/styles.css`. There is no CommonJS build.
+- The JavaScript keeps its `"use client"` directive. React, React DOM, and TanStack Virtual are
+  not bundled. React and React DOM are peer dependencies, and TanStack Virtual is a dependency.
+- The type declarations include the CSS entry. `package.json` marks the CSS as a side effect, and
+  you must import it yourself because the JavaScript entry doesn't.
+- The tarball contains only `dist/`, `package.json`, the README, and the LICENSE. Tests, dev app
+  assets, coverage, and config files stay out.
+- Declaration checks run with both `Bundler` and `NodeNext` resolution. The Next.js Pages fixture
+  sets `skipLibCheck` because Next's React 19 shared types conflict with React 18. A separate
+  `NodeNext` check runs with `--strict --skipLibCheck false`, so the library's own declarations are
+  still checked strictly. The Next fixtures use the ESNext type library.
 
-The [artifact check](../scripts/check-package.mjs) requires a publishable library with a real
-release version, public npm registry configuration, and private workspace/development-app packages.
-The library's `prepack` hook builds the library and runs that check before packing, including
-when publishing from the package directory. It does not replace the full release checklist.
+The [artifact check](../scripts/check-package.mjs) fails unless the library has a real release
+version and the public npm registry, and the workspace root and dev app are private. The library's
+`prepack` hook builds the library and runs this check, including when you publish from the package
+directory. It covers the artifact only, not the rest of the release checklist.
 
-## Local tarball installation
+## Installing a local tarball
 
-Before publication, build and pack from this repository:
+To try unreleased changes in another app, build and pack from this repository:
 
 ```bash
 pnpm install --frozen-lockfile
@@ -66,10 +61,10 @@ npm pack
 npm install /absolute/path/to/react-data-griddle/packages/data-griddle/data-griddle-0.1.0.tgz
 ```
 
-Packing runs the build/check hook using this workspace's development tools. Consumers of the
-finished tarball do not need pnpm or the build tools.
+`npm pack` runs the `prepack` build with this workspace's dev tools. The app that installs the
+tarball doesn't need pnpm or any build tools.
 
-## Reproduce the checks
+## Running the checks
 
 From the repository root:
 
@@ -83,57 +78,55 @@ pnpm exec playwright install chromium
 pnpm check:consumers
 ```
 
-`check:consumers` runs `check:package`, which builds the library and checks its artifact contract.
-The [consumer runner](../scripts/check-consumers.mjs) then inspects `npm pack --dry-run`, creates
-a real tarball, copies fixture consumers into an OS temporary directory and installs that tarball.
-Consumers use their own dependencies and lockfiles, without workspace links or source aliases.
-Playwright runs from the repository as the driver. No publish or deployment command is run.
+`check:consumers` first runs `check:package`, which builds the library and checks the artifact. The
+[consumer runner](../scripts/check-consumers.mjs) then checks `npm pack --dry-run`, packs a real
+tarball, copies the fixture consumers into an OS temporary directory, and installs the tarball
+there. Each consumer uses its own dependencies and lock file, with no workspace links or source
+aliases. Playwright runs from the repository root. The script never publishes or deploys.
 
 The consumer checks cover:
 
-- Direct Node SSR without DOM globals or React warnings, type checks and production builds.
-- Initial Next.js HTML and Chromium hydration without browser errors, followed by navigation away
-  and back and another edit.
-- Stylesheet retention without the development app's CSS, keyboard focus and offscreen scrolling.
-- Native row selection, built-in editing, custom-editor popup containment and body portals.
-- Initial loading, refresh and empty-result presentation.
+- Direct Node SSR without DOM globals or React warnings, type checks, and production builds
+- Initial Next.js HTML and Chromium hydration without browser errors, then navigating away and
+  back and editing again
+- The stylesheet applying without the dev app's CSS
+- Keyboard focus and scrolling to offscreen cells
+- Native row selection and built-in editing
+- A custom editor popup, both contained and in a body portal
+- Initial loading, refresh, and empty results
 
-The script prints an `Isolated consumers:` directory. Successful runs retain `pack.json`,
-`results.json`, the tarball, per-consumer logs, lockfiles and screenshots there. Preserve these
-with the tested commit and environment for release evidence; OS temporary storage is not a durable
-archive. The original run's raw artifacts were recorded in temporary storage and have not been
-revalidated for this guide.
+The script prints an `Isolated consumers:` directory. After a successful run it holds `pack.json`,
+`results.json`, the tarball, per-consumer logs, lock files, and screenshots. The OS can delete
+temporary directories, so copy anything you want to keep. In CI, `verify.yml` keeps the tarball,
+`pack.json`, and `results.json` for 30 days.
 
-Use `CONSUMER_FILTER=vite-react18 pnpm check:consumers` for a diagnostic subset; a filtered run
-does not establish the full matrix. See the [fixture instructions](../fixtures/README.md) for
-lockfile handling and running a generated consumer manually.
+`CONSUMER_FILTER=vite-react18 pnpm check:consumers` runs a single consumer for debugging, which
+doesn't cover the full matrix. The [fixture instructions](../fixtures/README.md) cover lock files
+and running a generated consumer by hand.
 
 ## Application integration
 
-Import CSS in a Vite entry, a Next.js App Router root layout, or Pages Router's `pages/_app.tsx`.
-Keep accessors, renderers, identity functions and event callbacks inside a Client Component;
-Server Components may pass serializable rows. See the
+Import the CSS in a Vite entry, the Next.js App Router root layout, or the Pages Router's
+`pages/_app.tsx`. Keep accessors, renderers, ID functions, and event callbacks in a Client
+Component. Server Components can pass serializable rows. See the
 [Next.js integration guide](./INTEGRATION.md#nextjs-client-boundary-and-stylesheet).
 
-SSR stays enabled. Initial output may contain the named grid shell rather than all virtualized
-row content; client layout measurements populate the grid. A consumer does not need `ssr: false`.
+Leave SSR on, and you don't need `ssr: false`. The server HTML may contain the labeled grid shell
+without every row, because virtualization fills in rows once the client measures the layout.
 
-## Remaining verification
+## Known gaps
 
-Desktop Chromium evidence does not establish the full Chrome/Edge/Firefox/Safari matrix, physical
-iOS/Android usability, screen-reader support, mobile IME behavior, zoom or forced-colors support.
-Keyboard column resizing and reordering are deferred beyond the experimental preview. Their absence
-is a documented accessibility limitation, not a preview release blocker.
-Hold-and-drag selection, touch resizing/reordering and double-tap editing have a separate `pnpm check:touch` Chromium smoke script against the running
-local app; this does not expand the historical packed-consumer matrix or verify physical devices.
-Follow the [manual accessibility and interaction matrix](./ACCESSIBILITY.md).
+Desktop Chromium is the only browser tested. Firefox, Safari, Chrome and Edge on other platforms,
+physical iOS and Android devices, screen readers, mobile IME input, zoom, and forced colors are all
+untested. Column resizing and reordering don't work from the keyboard. The
+[accessibility guide](./ACCESSIBILITY.md) lists this as a known limitation.
 
-The development app currently contains one editable grid at `/`. The former documentation website
-and scenario routes were removed; historical docs-site verification is not evidence that those
-examples remain available. `pnpm check:docs` now checks the single-grid page's structure, hydration,
-editing and narrow layout. It does not check Markdown links or complete the manual matrix.
+`pnpm check:touch` runs Chromium touch emulation against the local dev app; CI runs it against the
+docs export with `--export`. It covers hold-and-drag
+selection, touch resizing and reordering, and double-tap editing. It is separate from the consumer
+matrix and doesn't use a physical device. Follow the
+[manual accessibility and interaction matrix](./ACCESSIBILITY.md) for device testing.
 
-CI/release automation, a required contributor Node version and representative performance
-measurements are deferred for the initial release. Verification of the exact publication artifact
-and the explicitly unresolved manual support checks remain in the [release checklist](./RELEASING.md).
-These results are preparation evidence, not a certification of a published release.
+`pnpm check:docs` checks the dev app's single grid at `/` for structure, hydration, editing, and
+narrow layout. It doesn't check Markdown links or replace the manual matrix. The project has no
+performance benchmarks yet.

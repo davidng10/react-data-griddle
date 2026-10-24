@@ -1,7 +1,7 @@
-# Data Griddle - A performant React Data Grid
+# Data Griddle
 
-A virtualized, DOM-based data grid for React. The component supports large datasets while keeping
-selection, editing, and pointer interactions off the main cell-rendering path.
+A virtualized, DOM-based data grid for React. Selection, editing, and pointer state live in stores
+outside the cell-rendering path, so large datasets stay responsive while you interact with them.
 
 ## Features
 
@@ -9,33 +9,31 @@ selection, editing, and pointer interactions off the main cell-rendering path.
 - Left and right frozen columns
 - Cell focus, range selection, and checkbox row selection
 - Touch hold-and-drag range selection with edge scrolling
-- Touch double-tap entry into cell editing
+- Double-tap to edit on touch
 - Keyboard navigation and type-to-edit
 - Custom cell, header, editor, and selection-checkbox renderers
-- Stable-ID imperative cell focus
+- Imperative cell focus by row and column ID
 - Synchronous validation and asynchronous commits
-- Mouse and touch within-zone column reordering (hold a header, drag, release)
-- Mouse and touch column resizing with optional persistence callbacks
+- Column reordering within a zone by mouse or touch (hold a header, drag, release)
+- Column resizing by mouse or touch, with optional persistence callbacks
 
 ## Usage
 
-The initial published release is **0.1.0**, an experimental `0.x` release. APIs, styling contracts
-and behavior may change; pin an exact version and review release notes before upgrading.
-Install the published package from npm. For local changes, use the tarball workflow
-in the package verification guide.
+Version 0.1.0 is experimental. APIs, styling contracts, and behavior may change between `0.x`
+releases, so pin an exact version and read the release notes before upgrading.
 
 ```bash
 npm install --save-exact data-griddle@0.1.0
 ```
 
-Requires matching React and React DOM versions satisfying `^18.3.1 || ^19.2.6`.
-The package is ESM-only and targets ES2022; CommonJS is not provided. Packed consumers have been
-tested with React 18.3.1 and 19.2.6 in Vite, Next.js Pages Router, and React 19 in Next.js App Router.
-These checks use desktop Chromium; they do not establish minimum browser/OS versions or full
-mobile and screen-reader support.
+The package needs matching `react` and `react-dom` versions in `^18.3.1 || ^19.2.6`. It ships ESM
+only, targets ES2022, and has no CommonJS build. The packed tarball is tested in desktop Chromium with
+React 18.3.1 and 19.2.6 in Vite and the Next.js Pages Router, and with React 19 in the App Router.
+No minimum browser or OS versions, mobile browsers, or screen readers are verified yet. To test
+local changes, use the tarball workflow in the [package verification guide](https://github.com/davidng10/react-data-griddle/blob/v0.1.0/docs/PACKAGE_VERIFICATION.md).
 
-Import `data-griddle/styles.css` once in your application entry. The JavaScript entry does not
-automatically inject CSS. In Next.js use the root layout (App Router) or `pages/_app.tsx`.
+Import `data-griddle/styles.css` once in your application entry, because the JavaScript entry does
+not inject CSS. In Next.js, import it in the root layout (App Router) or `pages/_app.tsx`.
 
 ```tsx
 "use client";
@@ -103,14 +101,14 @@ export function PeopleGrid() {
 }
 ```
 
-The grid fills its parent, so its container must have a defined height. Row data remains owned by
-the caller; commit handlers must update `rows` with accepted values.
+The grid fills its parent, so give the container a height. The grid does not store row data. Your
+commit handler must write accepted values back into `rows`.
 
 ## Loading and empty results
 
-Pass application-owned request activity through `loading` (default `false`). The required `rows`
-prop accepts `null` and `undefined` for an unavailable result; an empty array means a completed
-result with no rows. Preserve that distinction instead of replacing missing data with `[]`.
+Pass your request state through `loading`. `rows` accepts `null` or `undefined` when no result exists
+yet. An empty array means the request finished with no rows, so don't substitute `[]` for missing
+data.
 
 ```tsx
 <DataGrid
@@ -124,158 +122,79 @@ result with no rows. Preserve that distinction instead of replacing missing data
 />
 ```
 
-Here `data` and `isFetching` come from your application. The grid does not fetch or cache data.
+Your application supplies `data` and `isFetching`. The grid does not fetch or cache data. To keep the
+current rows visible during a sort, filter, or page request, keep passing them with `loading` set.
+While loading, the grid ignores input inside itself and pauses any open editor without losing its
+draft. The [loading guide](https://github.com/davidng10/react-data-griddle/blob/v0.1.0/docs/LOADING.md) has the full state table and interaction rules.
 
-| Rows                 | Loading | Display                                                                      |
-| -------------------- | ------- | ---------------------------------------------------------------------------- |
-| `null` / `undefined` | `true`  | Headers and skeleton rows, without a spinner                                 |
-| `null` / `undefined` | `false` | Headers and a blank body; the app handles errors or instructions             |
-| Any array            | `true`  | Retained result beneath an overlay covering headers and body, with a spinner |
-| `[]`                 | `false` | Empty content, defaulting to “No rows”                                       |
-| Populated array      | `false` | Normal grid                                                                  |
-
-Keep supplying previous rows during sorting, filtering, or pagination requests to retain them under
-the overlay. Passing missing rows removes that result and shows the initial skeleton while loading.
-Initial skeleton bars gently pulse to show activity. The existing skeleton fallback for virtualized
-rendering gaps stays static and works independently of `loading`.
-
-`loadingIndicator` replaces only the refresh indicator; the grid owns overlay placement and behavior.
-`emptyContent` replaces empty-result content. Explicit `null` hides either visual. Keep custom
-indicators noninteractive; `loadingLabel` supplies the accessible announcement independently.
-The default spinner always rotates, including when reduced motion is enabled. Custom indicators
-control their own animation behavior.
-
-Loading blocks pointer and keyboard interactions inside the grid, including custom cell/header
-controls and the editor portal. Outside controls remain usable. Active resize/reorder gestures are
-cancelled without committing, selection stops at its current range, and pending saves finish normally.
-An active editor is paused with its draft intact and resumes against the same row ID. If the edited
-row or column disappears, a notice preserves the draft until its target returns or you explicitly
-discard it. Focus is restored after a background refresh unless you moved it to another control.
-As usual, an outside click before loading begins may commit an edit.
-
-`id`, `className`, and `style` apply to the stationary outer frame; accessible naming applies to the
-focusable inner scroller. Code that previously used the root element as the scroll container must
-account for this new wrapper. Loading styles are included in the exported stylesheet. Customize their
-colors through CSS variables on the frame:
-
-```css
-.my-grid {
-  --dgr-loading-overlay-background: rgb(255 255 255 / 65%);
-  --dgr-loading-indicator-color: #57534e;
-  --dgr-empty-color: #78716c;
-}
-```
-
-The packed-consumer fixture exercises initial loading, refresh and empty results. Custom indicators
-and delayed refresh while editing need a dedicated consumer scenario; the local app is a basic grid.
-
-## Column behavior
-
-Explicit column widths are preserved, even when they leave unused space. The last column in visual
-order without a `width` or a width override fills the remaining viewport width; earlier unspecified
-columns use the 140px default. The available space excludes the checkbox gutter and all other
-columns, including frozen columns. Automatic sizing respects `minWidth` (48px by default) and
-`maxWidth`: insufficient room causes horizontal scrolling, while a maximum can leave unused space.
-
-Manually resizing an automatic column gives it an explicit width for the session. The last remaining
-unspecified column then fills the space, if there is one. Controlled `columnWidths` and
-`defaultColumnWidths` also count as explicit widths. Removing a controlled override restores the
-column's eligibility for automatic sizing when its schema has no `width`. Container-driven sizing
-does not emit `onColumnWidthsChange`.
+## Columns
 
 - `accessor` reads the displayed value from a row.
-- `editable` enables editing; `renderEditor` can provide a custom editor.
+- `editable` enables editing. `renderEditor` supplies a custom editor.
 - `renderCell` and `renderHeader` customize read-mode cells and headers.
 - `parseValue` converts a draft before validation and commit.
 - `validate` returns an error message to reject a value.
 - `onCommit` overrides the grid-level `onCellCommit` for one column.
 - `frozen` pins a column to the left or right zone.
-- `selectable`, `resizable`, `reorderable`, and `reorderBarrier` customize normal-column behavior.
-- `type: 'action'` is always non-selectable, non-editable, non-resizable, non-reorderable, and a
-  reorder barrier; explicit capability props cannot override those invariants.
+- `selectable`, `resizable`, `reorderable`, and `reorderBarrier` change a normal column's behavior.
+- `type: 'action'` columns are never selectable, editable, resizable, or reorderable, and always act
+  as a reorder barrier. Setting those props on an action column has no effect.
 
-Row selection, column order, and column widths support controlled and uncontrolled use through
-`value`/`defaultValue`/`onChange`-style prop groups. Reordering and resizing work internally by
-default. A controlled value without its change callback is read-only and its matching affordances
-are disabled.
+Row selection, column order, and column widths each accept a controlled value, a default value, and a
+change callback. Reordering and resizing work without any props. If you pass a controlled value
+without its change callback, the grid treats it as read-only and disables the matching UI.
 
-Frozen columns are always rendered rather than horizontally virtualized. Keep the number frozen on
-each side small for large grids.
-
-## Development
-
-```bash
-pnpm install --frozen-lockfile
-pnpm dev              # library watch + single-grid Next.js app
-pnpm test             # source regressions
-pnpm lint             # ESLint + library/app/fixture types
-pnpm build            # ESM library + static single-grid app
-pnpm check:package    # build + artifact contract
-pnpm exec playwright install chromium
-pnpm check:consumers  # real tarballs in isolated Vite/Next consumers
-pnpm check:touch      # Chromium touch gestures; requires pnpm dev in another terminal
-```
-
-See [INTERNALS.md](https://github.com/davidng10/react-data-griddle/blob/main/INTERNALS.md) for the rendering model and performance constraints.
-
-For phone testing through ngrok, put the tunnel hostname (without `https://` or a port) in
-`apps/docs/.env.local`, then restart `pnpm dev`:
-
-```dotenv
-DEV_TUNNEL_HOST=your-tunnel.ngrok-free.dev
-```
-
-The development app uses this hostname in Next.js `allowedDevOrigins` so its dev WebSocket can
-connect through the tunnel. Without it, the page can remain on its server-rendered skeleton.
-Update the value if your tunnel hostname changes. The local environment file is Git-ignored.
+Columns without a `width` get 140px, except the last one in visual order, which fills the remaining
+width. The [column guide](https://github.com/davidng10/react-data-griddle/blob/v0.1.0/docs/COLUMNS.md) covers fill width, resizing, and frozen-column costs.
 
 ## Styling and themes
 
-Default styles are scoped to grid-owned classes; import `data-griddle/styles.css`. Set
-`--dgr-*` variables on the frame or an ancestor; active body-mounted editors copy their originating
-grid's theme. Columns accept `cellClassName` and `headerClassName` as strings or context callbacks.
-Cells and headers clip overflow without automatic ellipsis. Opt into truncation with application
-CSS through these classes, or style individual labels and links inside custom renderers.
-Use `rowHeight` and column widths for geometry; CSS controls appearance.
+The default styles in `data-griddle/styles.css` only target grid-owned classes. `id`, `className`,
+and `style` go on the outer frame, which does not scroll. `aria-label` and other accessible names go
+on the inner scroll container, which takes focus. Set `--dgr-*` variables on the frame or an
+ancestor. Editors mounted in `document.body` copy the theme of the grid
+that opened them. Columns accept `cellClassName` and `headerClassName` as strings or callbacks that
+receive the cell or header context.
 
-See the [styling contract](https://github.com/davidng10/react-data-griddle/blob/main/docs/STYLING.md) for tokens, defaults, parts, callback contexts, and
-portal synchronization limits. The guide includes theme and conditional-class examples; the local
-app does not include an interactive theme showcase.
+Cells and headers clip overflow but don't add an ellipsis. To truncate, add CSS through those
+classes or style the content inside a custom renderer. Set geometry with `rowHeight` and column
+widths, and appearance with CSS.
+
+The [styling contract](https://github.com/davidng10/react-data-griddle/blob/v0.1.0/docs/STYLING.md) lists tokens, defaults, parts, callback contexts, and the
+limits of portal theme syncing, with theme and conditional-class examples.
 
 ## Integration APIs
 
-See the [integration guide](https://github.com/davidng10/react-data-griddle/blob/main/docs/INTEGRATION.md) for controlled/uncontrolled/read-only state,
-stable identity, editing and persistence, custom selection controls, and the `DataGridHandle.focusCell`
-command. Run `pnpm dev` and open `/` for the basic editable grid. Packed-consumer fixtures cover
-additional public-API scenarios; their setup and coverage are described in the verification guide below.
-
-Stores and geometry helpers remain private. See [package verification](https://github.com/davidng10/react-data-griddle/blob/main/docs/PACKAGE_VERIFICATION.md)
-for exact tested versions and remaining limitations.
+The [integration guide](https://github.com/davidng10/react-data-griddle/blob/v0.1.0/docs/INTEGRATION.md) covers controlled, uncontrolled, and read-only state,
+stable identity, editing and persistence, custom selection controls, and
+`DataGridHandle.focusCell`. Stores and geometry helpers are private. The
+[package verification guide](https://github.com/davidng10/react-data-griddle/blob/v0.1.0/docs/PACKAGE_VERIFICATION.md) lists the exact tested versions and
+known gaps.
 
 ## Accessibility and interaction
 
-See [keyboard, touch and accessibility guidance](https://github.com/davidng10/react-data-griddle/blob/main/docs/ACCESSIBILITY.md) for navigation, native control
-tab order, editor behavior, remaining touch/column interaction gaps and the manual test matrix.
-Source semantics and keyboard navigation are implemented; target-browser, physical-device and
-screen-reader support remains unverified. Applications must adapt frozen widths and columns to
-narrow containers; the basic app does not demonstrate responsive unpinning.
+The [keyboard, touch, and accessibility guide](https://github.com/davidng10/react-data-griddle/blob/v0.1.0/docs/ACCESSIBILITY.md) covers navigation, tab
+order for native controls, editor behavior, known touch and column interaction gaps, and the manual
+test matrix. The grid implements ARIA semantics and keyboard navigation, but nobody has tested it on
+target browsers, physical devices, or screen readers yet. The grid doesn't unpin frozen columns on
+narrow screens, so your application has to adjust frozen widths and columns itself.
 
 ## Workspace and releases
 
-- `packages/data-griddle/`: canonical source, styles, tests, ESM build and declarations.
-- `apps/docs/`: a single-grid Next.js App Router development app.
-- `fixtures/`: isolated packed consumers, copied outside the workspace by verification scripts.
-- `docs/`: repository guides, read directly as Markdown.
+To work on the grid itself, see [CONTRIBUTING.md](https://github.com/davidng10/react-data-griddle/blob/v0.1.0/CONTRIBUTING.md) for setup, commands, and pull
+request conventions.
 
-The development app consumes only public package exports. `pnpm dev` builds the library first and watches
-it alongside Next.js; restart it after changing the public export map. No Turborepo or Nx is needed.
+- `packages/data-griddle/`: library source, styles, tests, ESM build, and declarations.
+- `apps/docs/`: Next.js App Router dev app with one grid.
+- `fixtures/`: packed-consumer templates that the verification scripts copy outside the workspace.
+- `docs/`: Markdown guides. There is no documentation site.
 
-The initial release uses version `0.1.0` and the npm `latest` tag. The tag controls the default
-installation; it does not imply a stable API. Pin preview versions exactly. Documentation lives
-in this README and the repository guides; a dedicated documentation site is outside this release.
+The dev app imports only public package exports. `pnpm dev` builds the library, then watches it
+alongside Next.js. Restart it after changing the package's `exports` map.
 
-See the [release checklist](https://github.com/davidng10/react-data-griddle/blob/main/docs/RELEASING.md) for the automated workflow, remaining
-verification and publishing recovery, and [release notes](https://github.com/davidng10/react-data-griddle/blob/main/CHANGELOG.md)
-for the initial feature scope and limitations. The library is configured for publication;
-the workspace and development app remain private. GitHub Actions prepares release PRs and
-publishes their tested packages after maintainers merge them.
+npm publishes 0.1.0 under the `latest` tag. That makes it the default install, not a stable API.
+
+GitHub Actions opens release PRs and publishes the tested package when a maintainer merges one. Only
+the library is published. The workspace root and dev app are private. See the
+[release checklist](https://github.com/davidng10/react-data-griddle/blob/v0.1.0/docs/RELEASING.md) for the workflow, manual checks, and publish recovery, and
+the [changelog](https://github.com/davidng10/react-data-griddle/blob/v0.1.0/CHANGELOG.md) for the initial feature scope and limitations.

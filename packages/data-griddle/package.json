@@ -45,7 +45,7 @@
     "build": "node build.mjs",
     "dev": "node build.mjs --watch",
     "lint": "tsc --noEmit",
-    "prepack": "pnpm build 1>&2 && node ../../scripts/check-package.mjs 1>&2"
+    "prepack": "node ../../scripts/sync-package-readme.mjs && pnpm build 1>&2 && node ../../scripts/check-package.mjs 1>&2"
   },
   "peerDependencies": {
     "react": "^18.3.1 || ^19.2.6",
