@@ -56,6 +56,15 @@ jobs:
         with:
           browsers: "true"
       - run: pnpm verify:e2e
+      - name: Retain the Playwright report and traces
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: playwright-report
+          retention-days: 14
+          path: |
+            playwright-report/
+            test-results/
 
   consumers:
     name: Packed consumers

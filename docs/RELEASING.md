@@ -14,7 +14,7 @@ private. Release Please writes the root `CHANGELOG.md`, so Prettier ignores that
   the bot's release PR, because PR events created with `GITHUB_TOKEN` don't trigger other workflows.
 - `verify.yml` runs four parallel jobs, each installing with Node 24 and the repository's pinned
   pnpm from the frozen lock file: static checks (build, lint, types, format), unit tests, browser
-  checks (`check:docs`, touch gestures against the docs export, the reorder-indicator checks), and
+  checks (the Playwright suite in `e2e/`: touch gestures, editing, reorder indicator), and
   the five packed consumers. Every job checks out the same commit. The consumers job keeps the
   tested tarball, `pack.json`, and `results.json` for 30 days. An `All checks` job fails unless
   all four succeed.
@@ -82,9 +82,8 @@ already matches this repository. See [npm trusted publishing](https://docs.npmjs
 4. Install the new version from the registry in a fresh app and check the CSS import, rendering,
    selection, and editing. Write down the results of any testing on physical devices.
 
-CI runs the touch checks against the docs export. To run them locally against the dev app, run
-`pnpm check:touch` with `pnpm dev` running in another terminal, or `pnpm verify:e2e` to build and
-serve the export.
+To run the browser checks locally, including touch, run `pnpm test:e2e`. It builds and serves the
+scenario pages itself.
 
 ## Failed releases and retries
 

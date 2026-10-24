@@ -1,42 +1,14 @@
 import assert from "node:assert/strict";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { chromium, expect } from "@playwright/test";
-import { build } from "esbuild";
+import { expect, test } from "@playwright/test";
+
+import type { FixtureColumn } from "../scenarios/reorder-indicator";
 
 // Pixel checks catch a guide hidden by a frozen band's shadow: DOM visibility alone cannot.
-const bundle = await build({
-  stdin: {
-    contents: `
-    import React from 'react';
-    import { createRoot } from 'react-dom/client';
-    import { DataGrid } from './packages/data-griddle/src/index';
-    const columns = window.fixtureColumns.map(c => ({...c, name: c.id, accessor: r => r.value}));
-    createRoot(document.getElementById('app')).render(<DataGrid
-      rows={[{id: 1, value: 'Value'}]} columns={columns} getRowId={r => r.id}
-      enableRowSelection onColumnOrderChange={order => window.lastOrder = order}
-      style={{height: 240, width: columns.reduce((sum, c) => sum + c.width, 42), '--dgr-reorder-indicator-color': '#ff00ff'}}
-    />);
-  `,
-    resolveDir: process.cwd(),
-    loader: "tsx",
-  },
-  bundle: true,
-  write: false,
-  outdir: "out",
-  format: "iife",
-  jsx: "automatic",
-  define: { "process.env.NODE_ENV": '"production"' },
-});
-const js = bundle.outputFiles.find((f) => f.path.endsWith(".js")).text;
-const css = bundle.outputFiles.find((f) => f.path.endsWith(".css")).text;
-const evidence = mkdtempSync(join(tmpdir(), "data-griddle-drop-guide-"));
-const plain = [
+const plain: FixtureColumn[] = [
   { id: "C0", width: 200 },
   { id: "C1", width: 200 },
 ];
-const frozen = [
+const frozen: FixtureColumn[] = [
   { id: "L0", width: 100, frozen: "left" },
   { id: "L1", width: 100, frozen: "left" },
   ...plain,
@@ -68,29 +40,25 @@ const cases = [
     },
   ]),
 ];
-const browser = await chromium.launch();
-const failures = [];
-try {
-  for (const scenario of cases) {
-    const page = await browser.newPage({
-      viewport: { width: 1000, height: 400 },
-    });
-    await page.setContent(
-      '<body style="margin:24px"><div id="app"></div></body>'
-    );
-    await page.evaluate((columns) => {
+
+test.use({ viewport: { width: 1000, height: 400 } });
+
+for (const scenario of cases) {
+  test(`${scenario.name} guide fully visible and drop correct`, async ({
+    page,
+  }, testInfo) => {
+    await page.addInitScript((columns) => {
       window.fixtureColumns = columns;
     }, scenario.columns);
-    await page.addStyleTag({ content: css });
-    await page.addScriptTag({ content: js });
+    await page.goto("/?s=reorder-indicator");
     const grid = page.getByRole("grid");
     await grid.getByRole("gridcell").first().waitFor();
-    const from = await grid
+    const from = (await grid
       .getByRole("columnheader", { name: scenario.from, exact: true })
-      .boundingBox();
-    const target = await grid
+      .boundingBox())!;
+    const target = (await grid
       .getByRole("columnheader", { name: scenario.target, exact: true })
-      .boundingBox();
+      .boundingBox())!;
     const boundary = target.x + (scenario.end ? target.width : 0);
     await page.mouse.move(from.x + from.width / 2, from.y + 16);
     await page.mouse.down();
@@ -113,7 +81,7 @@ try {
         const canvas = document.createElement("canvas");
         canvas.width = image.width;
         canvas.height = image.height;
-        const context = canvas.getContext("2d");
+        const context = canvas.getContext("2d")!;
         context.drawImage(image, 0, 0);
         const pixels = context.getImageData(
           0,
@@ -129,11 +97,12 @@ try {
       },
       `data:image/png;base64,${png.toString("base64")}`
     );
-    await page.screenshot({ path: join(evidence, `${scenario.name}.png`) });
-    if (coloredPixels !== 40)
-      failures.push(
-        `${scenario.name}: ${coloredPixels}/40 guide pixels visible`
-      );
+    await page.screenshot({
+      path: testInfo.outputPath(`${scenario.name}.png`),
+    });
+    expect
+      .soft(coloredPixels, "guide pixels visible (drop indicator obscured)")
+      .toBe(40);
     await page.mouse.up();
     const order = scenario.columns.map((c) => c.id);
     const sourceIndex = order.indexOf(scenario.from);
@@ -147,16 +116,5 @@ try {
       order,
       scenario.name
     );
-    await page.close();
-  }
-  assert.deepEqual(
-    failures,
-    [],
-    `Drop indicator obscured. Screenshots: ${evidence}`
-  );
-  console.log(
-    `All 7 checkbox/frozen boundary guides fully visible and drops correct. Screenshots: ${evidence}`
-  );
-} finally {
-  await browser.close();
+  });
 }

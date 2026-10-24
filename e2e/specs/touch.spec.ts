@@ -1,28 +1,32 @@
 import assert from "node:assert/strict";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { chromium, expect } from "@playwright/test";
+import { devices, expect, test } from "@playwright/test";
 
-import { serveDocs } from "./serve-docs.mjs";
+import type { Locator } from "@playwright/test";
 
-// Run against the current single-grid app (pnpm dev), a served production export URL, or
-// `--export` to serve apps/docs/out (CI). CDP dispatches browser touch input, unlike
-// DOM-dispatched events which cannot prove native pan.
-const docs = process.argv[2] === "--export" ? await serveDocs() : undefined;
-const url = docs?.url ?? process.argv[2] ?? "http://localhost:3000";
-const evidence = mkdtempSync(join(tmpdir(), "data-griddle-touch-"));
-const browser = await chromium.launch();
-try {
-  const context = await browser.newContext({
-    viewport: { width: 390, height: 844 },
-    isMobile: true,
-    hasTouch: true,
-  });
-  const page = await context.newPage();
-  const errors = [];
+type TouchType = "touchStart" | "touchMove" | "touchEnd" | "touchCancel";
+
+declare global {
+  interface Window {
+    cellTouchEnds: boolean[];
+  }
+}
+
+// CDP dispatches browser touch input, unlike DOM-dispatched events which cannot prove native pan.
+test.use({
+  viewport: { width: 390, height: 844 },
+  isMobile: true,
+  hasTouch: true,
+});
+
+test("touch range, native scrolling, edge-scroll cancellation, column resizing/reordering and double-tap editing", async ({
+  browser,
+  context,
+  page,
+  baseURL,
+}, testInfo) => {
+  const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto(url);
+  await page.goto("/?s=people");
   const grid = page.getByRole("grid", { name: "People example" });
   // Wait for hydration/virtualization, not just the server-rendered grid shell.
   await grid.getByRole("gridcell").first().waitFor();
@@ -31,7 +35,7 @@ try {
   const x = box.x + 100;
   const y = box.y + 80;
   const cdp = await context.newCDPSession(page);
-  const touch = (type, x, y) =>
+  const touch = (type: TouchType, x = 0, y = 0) =>
     cdp.send("Input.dispatchTouchEvent", {
       type,
       touchPoints:
@@ -56,7 +60,7 @@ try {
   await touch("touchEnd");
   await expect(range).toHaveCount(1);
   await expect(page.getByRole("textbox")).toHaveCount(0);
-  await page.screenshot({ path: join(evidence, "held-range.png") });
+  await page.screenshot({ path: testInfo.outputPath("held-range.png") });
 
   await touch("touchStart", x, y + 220);
   for (let step = 1; step <= 6; step++) {
@@ -115,7 +119,7 @@ try {
   await touch("touchEnd");
   await expect.poll(width).toBe(originalWidth + 50);
   await expect(grid.locator(".dgr-resize-indicator")).toHaveCount(0);
-  await page.screenshot({ path: join(evidence, "touch-resize.png") });
+  await page.screenshot({ path: testInfo.outputPath("touch-resize.png") });
 
   handleBox = await handle.boundingBox();
   assert(handleBox);
@@ -159,7 +163,7 @@ try {
     name: "Role",
     exact: true,
   });
-  const headerX = async (locator) => (await locator.boundingBox()).x;
+  const headerX = async (locator: Locator) => (await locator.boundingBox())!.x;
   await touch("touchStart", x, handleY);
   await expect(reorderGuide).toHaveCount(1);
   await expect(ghost).toBeVisible();
@@ -169,14 +173,14 @@ try {
   await expect(ghost).toHaveCSS("color", "rgb(123, 45, 67)");
   await expect(ghost).toHaveCSS("background-color", "rgb(240, 230, 220)");
   await expect(ghost).toHaveCSS("font-family", "monospace");
-  const originalHeaderBox = await header.boundingBox();
-  assert.equal((await ghost.boundingBox()).width, originalHeaderBox.width);
+  const originalHeaderBox = (await header.boundingBox())!;
+  assert.equal((await ghost.boundingBox())!.width, originalHeaderBox.width);
   await expect(ghost).toHaveCSS(
     "font-size",
     await header.evaluate((el) => getComputedStyle(el).fontSize)
   );
   await touch("touchMove", box.x + box.width - 15, handleY + 80);
-  const ghostBox = await ghost.boundingBox();
+  const ghostBox = (await ghost.boundingBox())!;
   assert(
     ghostBox.y + ghostBox.height < handleY + 80,
     "touch ghost stays above the finger"
@@ -194,14 +198,16 @@ try {
     0,
     "held header drag does not pan vertically"
   );
-  await page.screenshot({ path: join(evidence, "touch-reorder-preview.png") });
+  await page.screenshot({
+    path: testInfo.outputPath("touch-reorder-preview.png"),
+  });
   await touch("touchEnd");
   await expect(reorderGuide).toHaveCount(0);
   await expect(ghost).toHaveCount(0);
   await expect
     .poll(async () => (await headerX(roleHeader)) < (await headerX(header)))
     .toBe(true);
-  await page.screenshot({ path: join(evidence, "touch-reorder.png") });
+  await page.screenshot({ path: testInfo.outputPath("touch-reorder.png") });
   const reorderedNameX = (await headerX(header)) + 70;
   await touch("touchStart", reorderedNameX, handleY);
   await expect(reorderGuide).toHaveCount(1);
@@ -220,12 +226,12 @@ try {
   await touch("touchStart", x, handleY);
   await expect(ghost).toBeVisible();
   await touch("touchMove", x + 30, handleY + 100);
-  const zoomedGhost = await ghost.boundingBox();
+  const zoomedGhost = (await ghost.boundingBox())!;
   const visibleViewport = await page.evaluate(() => ({
-    left: visualViewport.offsetLeft,
-    top: visualViewport.offsetTop,
-    width: visualViewport.width,
-    height: visualViewport.height,
+    left: visualViewport!.offsetLeft,
+    top: visualViewport!.offsetTop,
+    width: visualViewport!.width,
+    height: visualViewport!.height,
   }));
   assert(
     zoomedGhost.x >= visibleViewport.left &&
@@ -272,7 +278,7 @@ try {
     "editing does not double-tap zoom"
   );
   await editor.fill("Ada Touch");
-  await page.screenshot({ path: join(evidence, "touch-editor.png") });
+  await page.screenshot({ path: testInfo.outputPath("touch-editor.png") });
   await page.getByRole("button", { name: "Save edit" }).tap();
   await expect(editor).toHaveCount(0);
   await expect(
@@ -293,7 +299,7 @@ try {
   await page.evaluate(() => {
     window.cellTouchEnds = [];
     document.addEventListener("touchend", (event) => {
-      if (event.target.closest?.(".dgr-cell"))
+      if ((event.target as Element).closest?.(".dgr-cell"))
         window.cellTouchEnds.push(event.defaultPrevented);
     });
   });
@@ -303,7 +309,7 @@ try {
     await expect(editor).toHaveCount(0);
     await tap();
     await expect(editor).toBeFocused();
-    assert.equal(await page.evaluate(() => window.visualViewport.scale), zoom);
+    assert.equal(await page.evaluate(() => window.visualViewport!.scale), zoom);
     await page.getByRole("button", { name: "Cancel edit" }).tap();
     await expect(editor).toHaveCount(0);
   }
@@ -315,13 +321,17 @@ try {
   ]);
   await cdp.send("Emulation.setPageScaleFactor", { pageScaleFactor: 1 });
   assert.deepEqual(errors, []);
-  const desktop = await browser.newPage();
-  await desktop.goto(url);
+  // Pages from the `browser` fixture inherit this file's mobile `test.use` options; reset them.
+  const desktop = await browser.newPage({
+    ...devices["Desktop Chrome"],
+    baseURL,
+  });
+  await desktop.goto("/?s=people");
   const desktopGrid = desktop.getByRole("grid", { name: "People example" });
   await desktopGrid.getByRole("gridcell").first().waitFor();
-  const desktopHeader = await desktopGrid
+  const desktopHeader = (await desktopGrid
     .getByRole("columnheader", { name: "Name", exact: true })
-    .boundingBox();
+    .boundingBox())!;
   await desktop.mouse.move(desktopHeader.x + 50, desktopHeader.y + 16);
   await desktop.mouse.down();
   await expect(desktop.locator(".dgr-drag-ghost")).toHaveCount(0);
@@ -335,9 +345,9 @@ try {
     name: "Name",
     exact: true,
   });
-  const resizeEdge = await wideHeader
+  const resizeEdge = (await wideHeader
     .locator('[data-resize-handle="right"]')
-    .boundingBox();
+    .boundingBox())!;
   await desktop.mouse.move(
     resizeEdge.x + resizeEdge.width / 2,
     resizeEdge.y + 16
@@ -352,20 +362,20 @@ try {
   const longTitle =
     "A very long column heading that should be abbreviated inside the floating preview";
   await wideHeader.evaluate((el, title) => {
-    el.firstChild.textContent = title;
+    el.firstChild!.textContent = title;
   }, longTitle);
   const longHeader = desktopGrid.getByRole("columnheader", {
     name: longTitle,
     exact: true,
   });
-  const longBox = await longHeader.boundingBox();
+  const longBox = (await longHeader.boundingBox())!;
   const grabX = longBox.x + 550;
   await desktop.mouse.move(grabX, longBox.y + 16);
   await desktop.mouse.down();
   await desktop.mouse.move(grabX + 10, longBox.y + 60);
   const compactGhost = desktop.locator(".dgr-drag-ghost");
   await expect(compactGhost).toHaveCSS("width", "240px");
-  const compactBox = await compactGhost.boundingBox();
+  const compactBox = (await compactGhost.boundingBox())!;
   assert.equal(compactBox.height, longBox.height, "ghost keeps header height");
   assert(
     compactBox.x <= grabX + 10 && compactBox.x + compactBox.width >= grabX + 10,
@@ -374,7 +384,9 @@ try {
   await expect(compactGhost).toHaveText("Name");
   await expect(compactGhost).toHaveCSS("text-overflow", "clip");
   await expect(longHeader).toHaveCSS("width", "600px");
-  await desktop.screenshot({ path: join(evidence, "capped-drag-ghost.png") });
+  await desktop.screenshot({
+    path: testInfo.outputPath("capped-drag-ghost.png"),
+  });
   await desktop.keyboard.press("Escape");
   await desktop.mouse.up();
   await expect(compactGhost).toHaveCount(0);
@@ -385,10 +397,4 @@ try {
   await desktopGrid.press("Enter");
   await expect(desktop.getByRole("textbox")).toHaveCSS("font-size", "13px");
   await desktop.close();
-  console.log(
-    `Chromium touch range, native scrolling, edge-scroll cancellation, column resizing/reordering and double-tap editing passed. Screenshots: ${evidence}`
-  );
-} finally {
-  await browser.close();
-  docs?.close();
-}
+});
