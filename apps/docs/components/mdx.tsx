@@ -1,6 +1,8 @@
 import { CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 
+import { CODE_BACKGROUND } from "./code-block";
+
 import type { MDXComponents } from "mdx/types";
 
 export function getMDXComponents(components?: MDXComponents) {
@@ -9,7 +11,7 @@ export function getMDXComponents(components?: MDXComponents) {
     pre: (props) => (
       <CodeBlock
         {...props}
-        className={`bg-(--docs-code-background) ${props.className ?? ""}`}
+        className={`${CODE_BACKGROUND} ${props.className ?? ""}`}
       >
         <Pre>{props.children}</Pre>
       </CodeBlock>

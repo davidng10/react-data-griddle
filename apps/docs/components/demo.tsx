@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { ServerCodeBlock } from "fumadocs-ui/components/codeblock.rsc";
 
+import { CodeBlock } from "./code-block";
 import { DemoCode } from "./demo-code";
 
 import type { ReactNode } from "react";
@@ -29,13 +29,12 @@ export async function Demo({ file, height = 400, children }: DemoProps) {
         {children}
       </div>
       <DemoCode collapsible={code.split("\n").length > PEEK_LINES}>
-        <ServerCodeBlock
+        <CodeBlock
           lang="tsx"
           code={code}
-          themes={{ light: "github-light", dark: "github-dark" }}
           codeblock={{
             "data-line-numbers": true,
-            className: "rounded-none border-0 bg-transparent",
+            className: "rounded-none border-0",
             viewportProps: { className: "max-h-none" },
           }}
         />

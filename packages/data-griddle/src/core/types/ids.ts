@@ -1,9 +1,11 @@
 // Layout uses row indices; persistent state uses stable row and column ids.
 
+/** Row key returned by `getRowId` */
 export type RowId = string | number;
+/** Column key, from `column.id` */
 export type ColumnId = string;
 
-/** Canonical cell address. Note the asymmetry: row by index, column by stable id. */
+/** Cell address by row index and column id */
 export interface CellCoord {
   rowIndex: number;
   columnId: ColumnId;
