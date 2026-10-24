@@ -35,3 +35,6 @@ playwright-report/
 test-results/
 
 **/next-env.d.ts
+
+# Generated from the root README by scripts/sync-package-readme.mjs during prepack.
+/packages/data-griddle/README.md

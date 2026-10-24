@@ -4,9 +4,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium, expect } from "@playwright/test";
 
-// Run against the current single-grid app (pnpm dev), or pass a served production export URL.
-// CDP dispatches browser touch input, unlike DOM-dispatched events which cannot prove native pan.
-const url = process.argv[2] ?? "http://localhost:3000";
+import { serveDocs } from "./serve-docs.mjs";
+
+// Run against the current single-grid app (pnpm dev), a served production export URL, or
+// `--export` to serve apps/docs/out (CI). CDP dispatches browser touch input, unlike
+// DOM-dispatched events which cannot prove native pan.
+const docs = process.argv[2] === "--export" ? await serveDocs() : undefined;
+const url = docs?.url ?? process.argv[2] ?? "http://localhost:3000";
 const evidence = mkdtempSync(join(tmpdir(), "data-griddle-touch-"));
 const browser = await chromium.launch();
 try {
@@ -368,7 +372,7 @@ try {
     "capped ghost stays attached to a grab near the source's far edge"
   );
   await expect(compactGhost).toHaveText("Name");
-  await expect(compactGhost).toHaveCSS("text-overflow", "ellipsis");
+  await expect(compactGhost).toHaveCSS("text-overflow", "clip");
   await expect(longHeader).toHaveCSS("width", "600px");
   await desktop.screenshot({ path: join(evidence, "capped-drag-ghost.png") });
   await desktop.keyboard.press("Escape");
@@ -386,4 +390,5 @@ try {
   );
 } finally {
   await browser.close();
+  docs?.close();
 }

@@ -12,38 +12,69 @@ on:
 permissions:
   contents: read
 
+env:
+  HUSKY: "0"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+# Jobs run in parallel so one push reports every failing layer. Every job checks out the same
+# ref, so the tarball `consumers` retains is built from the commit the other jobs verified.
 jobs:
-  package:
-    name: Package checks
+  static:
+    name: Static checks
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      HUSKY: "0"
-      NEXT_TELEMETRY_DISABLED: "1"
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: ./.github/actions/setup
+      - run: pnpm verify:static
+
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          node-version: "24"
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm build:lib
-      - run: pnpm test
-      - run: pnpm lint
-      - run: pnpm format:check
-      - run: pnpm check:docs
-      - run: pnpm check:reorder-indicator
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: pnpm verify:unit
+
+  e2e:
+    name: Browser checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          browsers: "true"
+      - run: pnpm verify:e2e
+
+  consumers:
+    name: Packed consumers
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          browsers: "true"
       - name: Test packed consumers
         id: consumers
         shell: bash
         run: |
           set -euo pipefail
-          pnpm check:consumers | tee "$RUNNER_TEMP/consumers.log"
+          pnpm verify:consumers | tee "$RUNNER_TEMP/consumers.log"
           evidence=$(sed -n 's/^Isolated consumers: //p' "$RUNNER_TEMP/consumers.log")
           test -d "$evidence"
           printf 'evidence=%s\n' "$evidence" >> "$GITHUB_OUTPUT"
@@ -57,3 +88,14 @@ jobs:
             ${{ steps.consumers.outputs.evidence }}/*.tgz
             ${{ steps.consumers.outputs.evidence }}/pack.json
             ${{ steps.consumers.outputs.evidence }}/results.json
+
+  # The single required status check: jobs can be added or renamed without editing branch protection.
+  all:
+    name: All checks
+    if: always()
+    needs: [static, unit, e2e, consumers]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every verification job to succeed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: exit 1

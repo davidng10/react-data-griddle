@@ -20,7 +20,12 @@
     "check:docs": "pnpm build && node scripts/check-docs.mjs",
     "lint:fixtures": "tsc -p fixtures/tsconfig.json && tsc -p fixtures/vite/tsconfig.json && tsc -p fixtures/next-app/tsconfig.json && tsc -p fixtures/next-pages/tsconfig.json",
     "check:touch": "node scripts/check-touch.mjs",
-    "check:reorder-indicator": "node scripts/check-reorder-indicator.mjs"
+    "check:reorder-indicator": "node scripts/check-reorder-indicator.mjs",
+    "verify:static": "pnpm build:lib && pnpm lint && pnpm format:check",
+    "verify:unit": "pnpm test",
+    "verify:e2e": "pnpm check:docs && node scripts/check-touch.mjs --export && pnpm check:reorder-indicator",
+    "verify:consumers": "pnpm check:consumers",
+    "verify": "pnpm verify:static && pnpm verify:unit && pnpm verify:e2e && pnpm verify:consumers"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -1,14 +1,14 @@
 # Integrating Data Griddle
 
-Import components and types from `data-griddle` and styles from `data-griddle/styles.css`.
-The `0.1.0` release is being prepared; local tarballs are available for verification. Stores, geometry helpers,
-and deep internal imports are not supported public APIs. The preview API may change.
+Import components and types from `data-griddle` and styles from `data-griddle/styles.css`. Stores,
+geometry helpers, and deep imports into the package aren't public API. The API may change before
+1.0.
 
 ## State ownership and defaults
 
-The application owns `rows`, `columns`, `loading` and persistence. Supply immutable replacement
-arrays/objects when data or schema changes. The grid owns transient focus, ranges, drafts and gesture
-state. A row checkbox selection is independent of cell focus and ranges.
+Your application owns `rows`, `columns`, `loading`, and saving data. When data or columns change,
+pass new arrays and objects instead of mutating the old ones. The grid owns focus, ranges, drafts,
+and gesture state. Checkbox row selection is separate from cell focus and ranges.
 
 | State group   | Controlled value | Initial uncontrolled value | Change callback          |
 | ------------- | ---------------- | -------------------------- | ------------------------ |
@@ -16,57 +16,60 @@ state. A row checkbox selection is independent of cell focus and ranges.
 | Column order  | `columnOrder`    | `defaultColumnOrder`       | `onColumnOrderChange`    |
 | Column widths | `columnWidths`   | `defaultColumnWidths`      | `onColumnWidthsChange`   |
 
-Omit the controlled value to let the grid maintain that state. A default is read once on mount;
-changing it later does not reset state. A change callback is optional in uncontrolled mode and
-observes user changes. With a controlled value, the callback requests the next complete set, order
-array or width map; the application must supply it back to accept it. The grid does not optimistically
-replace controlled values. A controlled value without its matching callback is read-only and disables
-that group's controls. Keep each group in one mode for the lifetime of a grid.
+Leave out the controlled value and the grid keeps that state itself. The grid reads a default only
+on mount, so changing it later doesn't reset anything. In uncontrolled mode the change callback is
+optional and reports user changes. In controlled mode, the callback passes the complete next set,
+order array, or width map, and the change only happens when you pass that value back. The grid never
+updates a controlled value ahead of you. A controlled value without its callback is read-only, and
+the grid disables the matching controls. Don't switch a group between controlled and uncontrolled
+while the grid is mounted.
 
-Row selection defaults off (`enableRowSelection={false}`); reordering and resizing default on.
-Loading temporarily gates all three. Normal columns are selectable, resizable and reorderable by
-default, but editing is opt-in. Action columns always disable these capabilities and form reorder
-barriers. `rowHeight` defaults to 32px, overscan to 6 rows and 2 center columns. Column sizing defaults
-and constraints are described in the [README](../README.md#column-behavior).
+Row selection is off by default (`enableRowSelection={false}`). Reordering and resizing are on by
+default. All three are disabled while loading. Normal columns are selectable, resizable, and
+reorderable by default, and editing is opt-in. Action columns can't do any of these and act as
+reorder barriers. `rowHeight` defaults to 32px. Overscan defaults to 6 rows and 2 center columns.
+The [column guide](./COLUMNS.md) describes column sizing defaults and limits.
 
-`onSelectionChange` observes snapshots of focus, range and selected rows, including reconciliation.
-It does not receive an initial mount notification unless reconciliation changes state. Controlled
-row-selection requests also emit a snapshot with the requested row set; it is a proposal until the
-application updates `selectedRowIds`. Do not mutate snapshots or their sets. Focus/range coordinates
-use `rowIndex`; durable application references and the imperative command use stable `rowId`.
-Fully controlled focus/range props and programmatic range selection are deferred.
+`onSelectionChange` receives a snapshot of focus, range, and selected rows whenever they change,
+including when the grid adjusts them after a data change. It doesn't fire on mount unless that
+adjustment changes something. In controlled row selection, it also fires with the requested row
+set, which only takes effect once you update `selectedRowIds`. Don't mutate snapshots or their sets.
+Focus and range coordinates use `rowIndex`. Use `rowId` for anything you store, and for the
+`focusCell` command. There are no controlled focus or range props, and no API to select a range
+from code yet.
 
 ## Stable identity and reconciliation
 
-`getRowId(row, index)` must return a unique, stable string or number. Use a data key rather than the
-index when rows can reorder, filter or paginate. Keep each `column.id` unique and stable across
-schema updates. IDs identify logical records/fields; changing an ID creates a different target.
-Only currently supplied rows participate; the grid does not fetch, paginate or retain selections
-across missing datasets.
+`getRowId(row, index)` must return a unique, stable string or number. If rows can be reordered,
+filtered, or paginated, use a key from the data, not the index. Keep each `column.id` unique and
+stable when columns change. An ID names a record or field, so a new ID is a new target. The grid
+only knows about the rows you currently pass. It doesn't fetch or paginate, and it doesn't keep
+selections for rows that are gone.
 
-On data changes, focus and range endpoints follow row IDs to their new indices. Removing the focused
-row or column clears focus; removing either range endpoint clears the range. Selected row IDs absent
-from current rows are pruned from the displayed selection. Controlled sets remain application-owned:
-reconciliation does not call `onSelectedRowIdsChange` to rewrite them. An ID still present in the
-controlled set becomes checked again if its row returns. Uncontrolled pruned IDs are forgotten.
-Changing an existing column's capabilities does not itself clear an existing focus; new focus commands
-validate current selectability.
+When data changes, focus and both range ends follow their row IDs to the new indices. Removing the
+focused row or column clears focus, and removing the row or column at either end of the range
+clears the range. Selected row IDs that are no longer in `rows` stop showing as selected. The grid
+doesn't call `onSelectedRowIdsChange` to remove them from a controlled set. If the ID is still in
+your set when its row comes back, it shows as checked again. In uncontrolled mode, the grid forgets
+those IDs. Changing a column's options doesn't clear existing focus, but later focus commands check
+whether the column is selectable.
 
-Column order ignores removed/duplicate IDs and appends new columns in schema order, while frozen
-zones still determine visual placement. Reordering stays within a zone and cannot cross a barrier.
-Width overrides are applied by column ID and clamped to current bounds. Overrides for absent columns
-are ignored but retained, so a returning column can reuse its width. Reconciliation and automatic
-container sizing do not emit order/width change requests.
+Column order skips removed and duplicate IDs and adds new columns at the end in schema order.
+Frozen zones still decide where a column appears. Reordering stays within a zone and can't cross a
+barrier. Width overrides apply by column ID and are clamped to the column's current limits. The grid
+keeps overrides for missing columns, so a column that comes back gets its old width. None of these
+adjustments, and no automatic fill sizing, call the order or width callbacks.
 
-An active draft and pending save follow the stable row ID. If an edited row or column disappears,
-the draft is preserved with a discard notice until the target returns or the user discards it.
-Loading suspends the editor and its callbacks without committing; pending saves continue.
+A draft and a pending save follow their row ID. If the edited row or column disappears, the grid
+keeps the draft and shows a notice with a discard button until the target comes back or the user
+discards it. Loading pauses the editor and its callbacks without saving. Pending saves continue.
 
 ## Replaceable selection checkboxes
 
-`renderSelectionCheckbox(props: SelectionCheckboxProps)` replaces both row controls and the header
-control. Omitting it retains a native checkbox. The renderer runs in the selection gutter, keeping
-selection changes off the cell rendering path. Renderers must be pure; invoke callbacks from events.
+`renderSelectionCheckbox(props: SelectionCheckboxProps)` replaces the row checkboxes and the header
+checkbox. Without it, the grid uses native checkboxes. The renderer runs inside the selection gutter,
+so selection changes don't re-render cells. Keep the renderer pure and call the callbacks from event
+handlers.
 
 ```tsx
 import type { SelectionCheckboxProps } from "data-griddle";
@@ -96,34 +99,39 @@ function SelectionControl(props: SelectionCheckboxProps) {
 // renderSelectionCheckbox={(props) => <SelectionControl {...props} />}
 ```
 
-The exported discriminated union supplies:
+`SelectionCheckboxProps` is a discriminated union with:
 
 - `kind: "row"` with `rowId` and current zero-based `rowIndex`, or `kind: "all"` without a row.
 - `checked`, `indeterminate`, `disabled`, `readOnly`, and `"aria-label"`.
-- `onChange(): void`, requesting the grid's selection toggle. It takes no event or next checked value.
+- `onChange(): void`, which asks the grid to toggle selection. It takes no event and no checked
+  value.
 
-`disabled` includes loading, read-only selection, and an empty select-all target. `readOnly` identifies
-a controlled selection without its callback. The row control's `indeterminate` is always false.
-Default accessible names are “Select all rows” and “Select row N” (one-based current row position).
-Use `rowId` to look up a more descriptive name if needed, retaining a meaningful accessible label.
+`disabled` is true while loading, when selection is read-only, and when there are no rows for the
+header to select. `readOnly` is true when selection is controlled without a callback. A row
+control's `indeterminate` is always false. The default accessible names are "Select all rows" and
+"Select row N", where N is the one-based current row position. You can use `rowId` to look up a more
+descriptive name, as long as the label still makes sense on its own.
 
-The header operates on **all currently supplied rows**, including virtualized offscreen rows. An
-unchecked header selects all; checked or mixed clears all. Row activation toggles that ID. Callbacks
-resolve the latest committed rows/state and ignore loading, read-only and removed targets, even if a
-custom control retained an older callback. This guard does not replace forwarding disabled state.
+The header checkbox acts on every row you pass, including offscreen rows that aren't rendered. An
+unchecked header selects all rows, and a checked or mixed header clears them. A row checkbox
+toggles that row's ID. `onChange` always reads the latest rows and state, and does nothing while
+loading, when selection is read-only, or when the row is gone, even if your control kept an old
+callback. You still need to pass `disabled` through to your control.
 
-Custom controls must forward every state, expose checkbox semantics and mixed state, preserve a visible
-focus indicator, and support keyboard activation (at least Space). Native buttons provide Space and
-Enter activation; native checkbox replacements must set the DOM `indeterminate` property. Adapt a
-component library's event/value callback to call `props.onChange()` exactly once. Do not compute the
-next selected set yourself. The gutter isolates keyboard and pointer-down events from cell gestures.
+A custom control must reflect every state, expose checkbox semantics including the mixed state,
+show a visible focus indicator, and activate from the keyboard with at least Space. A native button
+already handles Space and Enter. If you render a native checkbox, set its DOM `indeterminate`
+property. If a component library calls back with an event or a value, call `props.onChange()` from
+it exactly once, and don't compute the next selection yourself. The gutter stops keyboard and
+pointer-down events from reaching cell gestures.
 
-Keep controls inside the gutter and provide usable pointer/touch targets without changing its 40px
-width. The example uses a 32px square in 40px rows; choose row height and target size for your users,
-allow spacing, and test zoom, touch and assistive technology. Do not assume a tiny visual checkmark is
-an adequate hit target. A disabled/read-only control must not activate. Rendering in another portal
-bypasses gutter containment and is unsupported. These responsibilities also apply to custom controls
-with their own nested elements. Accessibility-tree state checks are not screen-reader verification.
+Keep controls inside the gutter, which stays 40px wide, and make their pointer and touch targets
+large enough. The example uses a 32px button in 40px rows. Choose the row height and target size for
+your users, leave space between targets, and test with zoom, touch, and assistive technology. A
+small checkmark is not a large enough target on its own. A disabled or read-only control must not
+activate. Rendering the control into another portal takes it out of the gutter and isn't supported.
+All of this applies to any nested elements inside your control too. Checking the accessibility tree
+is not the same as testing with a screen reader.
 
 ## Imperative cell focus
 
@@ -157,7 +165,7 @@ function People({
           ref={grid}
           rows={rows}
           columns={columns}
-          getRowId={getRowId}
+          getRowId={(row) => row.id}
         />
       </div>
     </>
@@ -165,13 +173,14 @@ function People({
 }
 ```
 
-`DataGrid` preserves
-row inference with object or callback refs. `forwardRef` and `useImperativeHandle` target React 18/19;
-see [package verification](./PACKAGE_VERIFICATION.md) for tested versions. Read `ref.current` at command time;
-handles may be replaced after a render. An unmounted grid has a null ref.
+`DataGrid` still infers the row type when you pass an object ref or a callback ref. The handle uses
+`forwardRef` and `useImperativeHandle` and works with React 18 and 19. See
+[package verification](./PACKAGE_VERIFICATION.md) for the tested versions. Read `ref.current` when
+you call the command, because the handle can change after a render. The ref is `null` while the grid
+is unmounted.
 
-`focusCell` returns the exported `FocusCellResult`. Validation uses the current supplied rows through
-`getRowId`, then current columns, with this deterministic first-failure precedence:
+`focusCell` returns a `FocusCellResult`. It looks up the row in the current `rows` with `getRowId`,
+then the column, and returns the first failure in this order:
 
 | Order | Result                                      | Condition                                                                        |
 | ----- | ------------------------------------------- | -------------------------------------------------------------------------------- |
@@ -181,64 +190,69 @@ handles may be replaced after a render. An unmounted grid has a null ref.
 | 4     | `{ ok: false, reason: "busy" }`             | Loading; any active/preserved editor draft; selection, resize or reorder gesture |
 | 5     | `{ ok: true }`                              | Accepted                                                                         |
 
-A claimed header press is busy even before crossing the reorder threshold. Pending asynchronous saves
-alone do not block focus, including focus of the saving cell; editing that cell remains gated until
-the save settles. Validation failures do not change selection, keyboard focus or scroll offsets and
-never commit or discard a draft.
+A pointer held down on a header counts as busy even before it has moved far enough to start a
+reorder. A pending async save doesn't block focus, even on the cell being saved, but that cell can't
+be edited until the save finishes. A failed call doesn't change selection, focus, or scroll position,
+and never saves or discards a draft.
 
-Success focuses the grid's keyboard scroller on the target cell, clears the range, preserves checkbox
-selection and requests native scrolling into view. It handles offscreen loaded rows and center columns;
-frozen columns retain horizontal scroll position. It does not promise that a virtualized cell has
-already mounted or become fully visible if the viewport is smaller than the cell/frozen bands. It
-never fetches or paginates. Use `onSelectionChange` to observe focus; do not access internal stores.
+On success, the grid focuses its scroll container on the target cell, clears the range, keeps the
+checkbox selection, and asks the browser to scroll the cell into view. This works for offscreen rows
+and center columns. Targeting a frozen column doesn't change the horizontal scroll position. The
+cell may not be rendered yet when the call returns, and it can't be fully visible if the viewport is
+smaller than the cell plus the frozen zones. `focusCell` never fetches or paginates. Use
+`onSelectionChange` to track focus, not the internal stores.
 
-An outside pointer-down on a toolbar button can implicitly commit an editor **before** that button's
-click calls `focusCell`. The command itself never commits. For a shortcut intended to probe focus
-while editing, call from the keyboard event without first moving focus outside the editor.
+Pressing a toolbar button outside the grid can save an open editor before the button's click handler
+calls `focusCell`. `focusCell` itself never saves. To check focus while editing without that save,
+call it from a keyboard handler without moving focus out of the editor.
 
 ## Editing, validation and persistence
 
-`accessor` reads authoritative row values. `editable: true` or a context predicate enables editing;
-action columns remain non-editable. Built-in text editing starts with Enter/F2, typing, or a second
-click on a focused cell. `type: "select"` uses `options`; `renderEditor` replaces editor content.
+`accessor` reads the value from your row. Set `editable` to `true` or to a function of the cell
+context to enable editing. Action columns can't be edited. The built-in text editor opens on Enter,
+F2, typing, or a second click on the focused cell. `type: "select"` shows `options`, and
+`renderEditor` replaces the editor's content.
 
-The grid owns the draft exposed as `ctx.draft`; call `ctx.setDraft(next)` to change it. At commit time:
+The grid holds the draft in `ctx.draft`, and `ctx.setDraft(next)` changes it. When the user saves:
 
-1. `parseValue(draft, ctx)` converts the draft synchronously (if supplied).
-2. If the parsed result equals the current accessor value via `Object.is`, the editor closes without
-   validation or a commit callback.
-3. `validate(parsedValue, ctx)` runs for a changed value. Return a nonempty message to reject; return
-   null/undefined (or an empty string) to accept. Parsers/validators should be pure and must not throw;
-   convert invalid input into a value your validator can reject. Exceptions there are not async save
-   errors and do not invoke `onCellCommitError`.
-4. An explicit rejection keeps the draft/editor open and exposes `ctx.error`/`ctx.status`. After an
-   error, draft changes revalidate after a 200ms pause. A commit immediately validates the latest draft.
-   An implicit rejection discards the invalid draft so outside interaction is not trapped.
-5. Acceptance closes the editor immediately and calls column `onCommit`, or grid `onCellCommit` if
-   absent. The payload includes stable IDs, the current row, previous value and parsed next value.
+1. If you supplied `parseValue(draft, ctx)`, it converts the draft synchronously.
+2. If the parsed value is `Object.is` equal to the current accessor value, the editor closes without
+   validating or calling a commit callback.
+3. Otherwise `validate(parsedValue, ctx)` runs. Return a non-empty message to reject the value, or
+   `null`, `undefined`, or an empty string to accept it. Keep parsers and validators pure, and don't
+   throw from them. Turn bad input into a value your validator rejects instead. An exception there
+   is not a save error and doesn't call `onCellCommitError`.
+4. If an explicit save is rejected, the editor stays open with its draft, and `ctx.error` and
+   `ctx.status` show the error. After an error, the draft is revalidated 200ms after the user stops
+   typing, and saving validates the latest draft immediately. If an implicit save is rejected, the
+   grid discards the draft so the user isn't stuck in the editor.
+5. If the value is accepted, the editor closes and the grid calls the column's `onCommit`, or the
+   grid's `onCellCommit` if the column has none. The payload has the row and column IDs, the current
+   row, the previous value, and the parsed new value.
 
-Explicit commits include `ctx.commit()`, built-in text Enter/Tab and native-select picks. Built-in
-text Enter moves down, Tab moves right, Shift+Enter inserts a newline, and Escape cancels. `ctx.commit()`
-saves in place; `ctx.cancel()` discards without saving and restores grid focus. Built-in text blur and
-pointer-down outside the editor host are implicit commits. Custom editors own their blur policy;
-`ctx.commit()` always has explicit validation semantics.
+Explicit saves are `ctx.commit()`, Enter or Tab in the built-in text editor, and picking a native
+select option. In the built-in text editor, Enter moves down, Tab moves right, Shift+Enter inserts a
+newline, and Escape cancels. `ctx.commit()` saves without moving. `ctx.cancel()` discards the draft
+and returns focus to the grid. Blurring the built-in text editor and pressing outside the editor host
+are implicit saves. Custom editors decide what blur does, and `ctx.commit()` always validates as an
+explicit save.
 
-A returned promise keeps an optimistic value/spinner overlay while saving. Thrown commit-handler errors
-and rejected promises clear the pending display, flash the failed cell, and call
-`onCellCommitError({ update, error })`. The accepted draft is not reopened. Focus may have moved by then.
-The application must show useful failure/retry UI as needed and roll back any optimistic authoritative
-row update itself. The grid never mutates or rolls back application rows.
+If the commit callback returns a promise, the cell shows the new value and a spinner until it
+settles. If the callback throws or the promise rejects, the grid clears the pending value, flashes
+the cell, and calls `onCellCommitError({ update, error })`. The draft isn't reopened, and focus may
+have moved on. Show failure or retry UI yourself, and undo any optimistic change you made to your
+rows. The grid never changes or rolls back your rows.
 
-On success, update authoritative `rows` with the persisted value before resolving your commit promise;
-otherwise the overlay clears to the old accessor value. With no commit handler, acceptance simply
-closes the editor and leaves rows unchanged. Loading does not cancel pending saves.
+On success, update `rows` with the saved value before your promise resolves. Otherwise the cell goes
+back to showing the old accessor value. Without a commit callback, an accepted value just closes the
+editor and leaves `rows` unchanged. Loading doesn't cancel pending saves.
 
 ## Application-owned save-error feedback
 
-The grid provides no automatic save-error announcement. Use `onCellCommitError` to show a useful,
-accessible message in your application. Keep its live region mounted outside the grid and any
-loading/inert container; localize the wording and avoid duplicating announcements from an existing
-notification system. For example, inside a component with `rows` and `columns` already defined:
+The grid doesn't announce save errors. Use `onCellCommitError` to show an accessible message. Keep
+the live region mounted outside the grid and outside anything that becomes inert during loading.
+Localize the wording, and don't announce twice if you already have a notification system. For
+example, in a component that already defines `rows` and `columns`:
 
 ```tsx
 const [saveError, setSaveError] = useState("");
@@ -266,53 +280,44 @@ return (
 );
 ```
 
-Supply `saveCell` using your persistence code. This example does not change rollback behavior:
-applications must undo their own optimistic row updates. Test the announcement with actual assistive
-technology, including repeated failures and failures received while loading.
+`saveCell` is your own save function. The example doesn't roll anything back, so undo any
+optimistic row update yourself. Test the announcement with a real screen reader, including repeated
+failures and failures that arrive while loading.
 
 ## Custom editor focus, keyboard and popups
 
-The grid retains a themeable frame positioned in a body portal. See [styling](./STYLING.md#editor-themes)
-for tokens and geometry constraints. Custom content receives `CellEditContext<T>` and inherits the
-frame's theme. It must:
+The grid draws a themeable editor frame and positions it in a portal under `document.body`. See
+[styling](./STYLING.md#editor-themes) for tokens and sizing limits. Your editor content receives
+`CellEditContext<T>` and inherits the frame's theme. It must:
 
-- Focus an appropriate input on mount, manage focus among its controls, and provide labels, visible
-  focus and validation/error announcements using `ctx.status` and `ctx.error`.
-- Handle commit/cancel keys deliberately, preserve native input/IME behavior, and prevent default when
-  consuming keys. `ctx.commit()` does not implement Tab navigation; decide where Tab goes and avoid
-  focus traps. Escape should offer cancellation. The active editor owns the keyboard.
-- Keep popups in the editor host's **DOM subtree**, including library popup containers. React parentage
-  alone does not suffice: a separate `document.body` popup is outside and triggers an implicit commit.
-  A positioned descendant may extend beyond the frame without leaving the subtree.
-- Avoid unconditional blur commits when focus moves to an internal popup. Check `relatedTarget`
-  containment against a wrapper that contains all your controls, or use explicit Save/Cancel controls.
-  The grid's outside-pointer listener already ignores descendants of its host.
-- Use context callbacks rather than internal stores. They respect loading and current row identity.
-  Keep the draft in `ctx.draft` so a suspended editor or missing target does not lose it.
+- Focus a sensible input on mount, move focus between its own controls, and use `ctx.status` and
+  `ctx.error` to give labels, visible focus, and validation announcements.
+- Decide which keys save and cancel, keep native input and IME behavior working, and call
+  `preventDefault` on keys it handles. `ctx.commit()` doesn't move focus on Tab, so decide where Tab
+  goes and don't trap focus. Escape should cancel. The open editor receives all keyboard input.
+- Keep popups inside the editor host in the DOM, including a component library's popup container.
+  Being a React child isn't enough. A popup rendered separately into `document.body` is outside the
+  host, and clicking it saves the edit. A positioned element inside the host can extend past the
+  frame and still count as inside.
+- Not save on every blur, because focus moving to your own popup is a blur. Check whether
+  `relatedTarget` is inside a wrapper around all your controls, or use explicit Save and Cancel
+  buttons. The grid already ignores presses inside its host.
+- Use the context callbacks, not internal stores, because the callbacks handle loading and row
+  identity. Keep the draft in `ctx.draft` so it survives loading and a missing target.
 
 Run `pnpm dev` and open `/` for the [basic editable grid](../apps/docs/examples/BasicExample.tsx).
 The [packed-consumer example](../fixtures/shared/Example.tsx) adds offscreen focus, a frozen column,
-native row-selection controls, loading/empty states and a nested Status editor. Run it through the
-[consumer verification workflow](./PACKAGE_VERIFICATION.md). Custom checkboxes, controlled/read-only
-selection and row reversal need additional consumer setup; the former integration demo is removed.
-Source integration tests also exercise popup selection without an accidental commit. Other browser
-engines, physical mobile devices and assistive technology remain unverified.
+native row-selection checkboxes, loading and empty states, and a custom Status editor with a popup.
+Run it with the [consumer verification workflow](./PACKAGE_VERIFICATION.md). No example covers
+custom checkboxes, controlled or read-only selection, or row reversal. The source integration tests
+check that choosing from a popup doesn't save early. Browsers other than Chromium, physical mobile
+devices, and assistive technology are untested.
 
 ## Accessibility and input integration
 
-See [Accessibility and interaction](./ACCESSIBILITY.md) for the keyboard/touch contract and release
-verification matrix. The grid container and rendered controls use browser tab order; there is no
-F6 interaction mode or automatic tabindex rewriting. Custom controls must forward names/state,
-provide usable targets, native activation, focusability and visible focus. Only mounted controls
-participate, following the frozen-zone DOM order rather than necessarily visual row order.
-Default checkbox labels cover their gutter cell; custom controls own their hit area. Physical touch
-and AT verification of default/custom mixed and read-only states is still required.
-
-Custom editors must name inputs, associate validation messages, handle IME composition, provide
-explicit touch save/cancel and restore focus through the supplied callbacks. Keep popup DOM within
-the host and fit it to the visible viewport. The built-in editor's new host-boundary blur and touch
-actions do not impose those behaviors on custom editors. Applications own async save-error feedback
-through `onCellCommitError`, including any screen-reader announcement.
+See [Accessibility and interaction](./ACCESSIBILITY.md) for keyboard and touch behavior, tab
+order, and the manual test matrix. The sections above list what custom checkboxes, custom editors,
+and save-error feedback must handle themselves.
 
 ## Next.js client boundary and stylesheet
 
@@ -322,8 +327,8 @@ Keep SSR enabled. Import the stylesheet in `app/layout.tsx` or `pages/_app.tsx`:
 import "data-griddle/styles.css";
 ```
 
-Place interactive configuration inside a Client Component, including accessors, renderers,
-identity functions and event callbacks. A Server Component may supply serializable row data:
+Define accessors, renderers, ID functions, and event callbacks inside a Client Component. A Server
+Component can pass in serializable row data:
 
 ```tsx
 "use client";
@@ -358,8 +363,8 @@ export function People({ initialRows }: { initialRows: Person[] }) {
 }
 ```
 
-The library entry preserves `"use client"`. That boundary does not disable server rendering;
-the initial output is a named grid shell. Virtualized rows and center headers need layout
-measurement and are not guaranteed in initial HTML. Keep documentation and searchable content
-outside the grid. Do not send ordinary function-valued column definitions from Server Components.
-The same public component and stylesheet work in Pages Router; no `ssr: false` wrapper is needed.
+The library entry keeps its `"use client"` directive, which doesn't turn off server rendering. The
+server renders a labeled grid shell. Rows and center headers depend on layout measurement, so they
+may be missing from the initial HTML. Put content that must be indexed for search outside the grid.
+Server Components can't pass column definitions that contain functions. The same component and
+stylesheet work in the Pages Router, without an `ssr: false` wrapper.

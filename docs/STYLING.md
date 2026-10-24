@@ -1,20 +1,20 @@
 # Styling Data Griddle
 
-The experimental styling interface consists of scoped default CSS, `--dgr-*` variables,
-part/state selectors, and column class callbacks. Import `data-griddle/styles.css` once in your
-application entry. It includes grid and loading styles. In Next.js import it in the root layout
-(App Router) or `pages/_app.tsx` (Pages Router).
+You style the grid with four things: the default CSS, `--dgr-*` variables, part and state
+selectors, and column class callbacks. All of them may change before 1.0. Import
+`data-griddle/styles.css` once in your application entry. It includes the grid and loading styles.
+In Next.js, import it in the root layout (App Router) or `pages/_app.tsx` (Pages Router).
 
-Set tokens on the grid's `className`, inline `style` (cast custom properties to `CSSProperties`
-in TypeScript), or an ancestor. Defaults use fallbacks at their use sites, so ancestor tokens
-remain inherited. `id`, `className`, and `style` belong to the stationary `.dgr-root` frame.
-`[data-grid-scroller]` is the inner scrolling/focus element. The grid fills its parent; give
-that parent a definite height.
+Set tokens through the grid's `className`, its inline `style`, or an ancestor. In TypeScript, cast
+custom properties in `style` to `CSSProperties`. The defaults are fallbacks written where each
+token is used, so tokens set on an ancestor still inherit. `id`, `className`, and `style` go on the
+`.dgr-root` frame, which does not scroll. `[data-grid-scroller]` is the inner element that scrolls
+and takes focus. The grid fills its parent, so give the parent a fixed height.
 
-Set `style={{ borderRadius: 8 }}` on `DataGrid` to round its outer frame. The default
-is 4px; `--dgr-border-radius: 8px` provides the same control through a
-theme. The inner scroller clips its content to the rounded corners; the outer frame
-does not clip overflow. Body-mounted editors remain outside the scroller.
+To round the outer frame, set `style={{ borderRadius: 8 }}` on `DataGrid`, or set
+`--dgr-border-radius: 8px` in a theme. The default is 4px. The inner scroller clips its content to
+the rounded corners, but the outer frame doesn't clip overflow. Editors mounted in `document.body`
+sit outside the scroller and aren't clipped.
 
 ```css
 .accounts {
@@ -32,10 +32,10 @@ does not clip overflow. Body-mounted editors remain outside the scroller.
 
 ## Tokens and defaults
 
-Color values accept ordinary CSS colors. Typography, lengths, and shadows accept the CSS values
-appropriate to their property. A fallback to another token is resolved independently at each
-surface. Keep body, header, skeleton backing, and pending surfaces opaque, especially with frozen
-columns. Tokens do not calculate contrast automatically.
+Each token takes the CSS value its property normally takes. When a token falls back to another
+token, each element resolves that fallback on its own. Keep the body, header, skeleton backing, and
+pending backgrounds opaque, or scrolled content shows through frozen columns. The grid doesn't check
+contrast, so check your own color pairs.
 
 | Token                              | Default                                                      | Purpose                                                         |
 | ---------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------- |
@@ -70,10 +70,10 @@ columns. Tokens do not calculate contrast automatically.
 
 ## Parts and states
 
-Default selectors have low specificity and use only grid-owned classes. Built-in control resets
-use class specificity to beat ordinary host element rules. There is no global reset.
-Use your own root class to scope custom read-mode styles. A body's editor is outside that root;
-use tokens for portable editor styling, or `.dgr-editor-host` for common editor rules.
+The default selectors use only grid-owned classes and have low specificity. Resets on built-in
+controls use a class selector, so they win over element selectors in your CSS. There is no global
+reset. Scope custom read-mode styles under your own root class. The active editor is mounted in
+`document.body`, outside that root, so style it with tokens or with `.dgr-editor-host`.
 
 | Part or state                                                                            | Contract                                                   |
 | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
@@ -100,28 +100,27 @@ use tokens for portable editor styling, or `.dgr-editor-host` for common editor 
 | `.dgr-loading-body`, `.dgr-loading-indicator`, `.dgr-loading-spinner`                    | Loading layout and default indicator                       |
 | `.dgr-empty-content`, `.dgr-status-text`                                                 | Empty result and visually hidden accessible announcement   |
 
-The drag ghost displays `column.name` and copies only the source header's font family, size,
-weight, style, foreground/background colors and text direction when dragging activates. Its
-width is capped at 240px and the visible viewport; narrower headers keep their width. Long titles
-clip without an ellipsis while the original column width and header height stay unchanged. Its
-`.dgr-drag-ghost` class supplies padding, opacity, shadow and outline; use a global selector to
-customize these because the preview is mounted under `body`. Custom header components, controls,
-icons and pseudo-element decorations are not included in the preview.
+The drag ghost shows `column.name`. When the drag starts, it copies the source header's font
+family, size, weight, and style, its text and background colors, and its text direction, and
+nothing else. It is no wider than 240px or the visible viewport, and narrower headers keep their
+own width. Long titles clip without an ellipsis, and the original column keeps its width and
+header height. `.dgr-drag-ghost` sets the padding, opacity, shadow, and outline. The ghost is
+mounted in `body`, so override these with a selector that isn't scoped to the grid. The ghost
+doesn't show custom header components, controls, icons, or pseudo-element decorations.
 
-Selection states live on overlays, not every cell. Do not reveal `.dgr-status-text` or override
-interaction blocking. Loading's existing reduced-motion choice is unchanged: initial bars pulse
-and the spinner rotates even when reduced motion is requested; scrolling fallback bars stay static.
+Selection state is drawn by overlays, not set on each cell. Don't make `.dgr-status-text` visible,
+and don't override the input blocking during loading. Skeleton bars pulse and the spinner rotates
+even when the user prefers reduced motion. The skeleton cells shown while scrolling don't animate.
 
-Resize handles reserve touch dragging with `touch-action: none`. Their internal hit width grows
-from 5px to 12px on coarse-pointer devices; preserve this policy to keep resizing separate from
-native header scrolling.
+Resize handles set `touch-action: none` so touch drags resize instead of scrolling the header.
+Their hit area is 5px wide, or 12px on coarse-pointer devices. Keep both if you restyle them.
 
-Cells use `touch-action: manipulation` so double-tap editing does not trigger browser double-tap
-zoom. Preserve native pan and pinch zoom when customizing this policy.
+Cells set `touch-action: manipulation` so a double tap opens the editor instead of zooming. If you
+change this, keep native panning and pinch zoom working.
 
-Built-in editor inputs inherit the grid font on both touch and desktop devices, without a minimum
-font size. Their initial focus uses `preventScroll: true`; the portal owns viewport placement.
-Custom editor typography and focus behavior remain application-owned.
+Built-in editor inputs use the grid's font on every device, with no minimum font size. They focus
+with `preventScroll: true`, and the portal positions them in the viewport. Custom editors set their
+own typography and focus behavior.
 
 ## Conditional classes
 
@@ -142,29 +141,28 @@ cellClassName?: string | ((ctx: CellRenderContext<T>) => string | undefined);
 headerClassName?: string | ((ctx: HeaderRenderContext<T>) => string | undefined);
 ```
 
-Cell context contains `row`, `rowId`, `rowIndex`, `column`, `columnId`, `value`, `width`, and
-`height`. The accessor result and context are shared with `renderCell`. Header context contains
+The cell context has `row`, `rowId`, `rowIndex`, `column`, `columnId`, `value`, `width`, and
+`height`, and `renderCell` receives the same context and accessor result. The header context has
 `column`, `columnId`, `columnIndex`, `frozen`, `width`, `resizable`, and `reorderable`.
-Callbacks run during ordinary rendering; they must be pure and inexpensive. They update when
-supplied data changes and are not selection subscriptions. Returned classes supplement stable
-part classes; `undefined` adds nothing.
+The callbacks run during render, so keep them pure and cheap. They rerun when your data changes,
+not when the selection changes. The returned class is added next to the grid's own part classes,
+and `undefined` adds nothing.
 
-Use classes for text color, weight, decorations, and opaque cell backgrounds. Do not override
-position, transforms, width/height, box sizing, scrolling, pointer hit areas, or border thickness.
-Static layout lives in grid CSS; calculated geometry remains inline. Moving layout into CSS does
-not make it a supported customization surface. The `dgr-scroller`, `dgr-content`, `dgr-overlay`,
-and `dgr-pending-value` helper classes are internal, not additional public styling hooks.
-Use `rowHeight` for density and column width configuration for horizontal geometry. Font size and
-padding do not increase row height automatically; choose a row height that fits your content.
+Use these classes for text color, font weight, text decoration, and opaque cell backgrounds. Don't
+override position, transforms, width or height, box sizing, scrolling, hit areas, or border width.
+Some layout rules are in the grid's CSS and others are calculated inline, and neither kind is safe
+to override. `dgr-scroller`, `dgr-content`, `dgr-overlay`, and `dgr-pending-value` are internal
+classes, not styling hooks. Set density with `rowHeight` and horizontal size with column widths.
+Larger fonts or padding don't make rows taller, so pick a `rowHeight` that fits your content.
 
 ## Content overflow
 
-The grid owns cell dimensions and clips overflowing content. Cells and headers default to a
-single line, without automatic ellipsis. Applications own truncation, tooltips, and content layout
-through `cellClassName`, `headerClassName`, `renderCell`, and `renderHeader`. Default values,
-pending values, and column drag previews also clip without adding dots.
+The grid sets cell sizes and clips content that overflows. Cells and headers show one line and
+don't add an ellipsis. That applies to default values, pending values, and the drag ghost too. For
+truncation, tooltips, or other layout, use `cellClassName`, `headerClassName`, `renderCell`, and
+`renderHeader`.
 
-To opt into ellipsis for a simple value or heading, add an application class:
+To add an ellipsis to a plain value or heading, add a class:
 
 ```tsx
 const columns: Column<Entry>[] = [
@@ -186,55 +184,53 @@ const columns: Column<Entry>[] = [
 }
 ```
 
-For links or mixed content, apply truncation to the relevant element inside the custom renderer.
-For example, a link can use `display: block; max-width: 100%` with the styles above. In a flex
-layout, give the shrinking label `min-width: 0` and reserve space for buttons and icons. The grid
-does not inspect element types or add truncation wrappers, helper classes, or tooltips.
+For links or mixed content, truncate the element inside your custom renderer. For example, give a
+link `display: block; max-width: 100%` plus the styles above. In a flex layout, give the label that
+should shrink `min-width: 0` and leave room for buttons and icons. The grid doesn't add wrappers,
+helper classes, or tooltips for truncation.
 
-Wrapping can be enabled with application CSS, but content must fit the configured row height;
-rows do not automatically grow. Size controls and columns to fit their content, including cell
-padding and borders. Controls that inherit the cell font should set their own line-height rather
-than inheriting the row-height line box.
+You can turn on wrapping with your own CSS, but rows don't grow, so the content has to fit
+`rowHeight`. Size controls and columns to fit their content, including cell padding and borders.
+Controls that inherit the cell font should set their own `line-height` instead of inheriting the
+row's.
 
-Migration: applications that relied on automatic ellipsis must now opt in with their own styles.
-Column classes and custom renderers apply to normal cells/headers, not the separate pending-value
-overlay or drag preview.
+Column classes and custom renderers apply to normal cells and headers. They don't reach the
+pending-value overlay or the drag ghost.
 
 ## Editor themes
 
-An active editor lives under `document.body`. Its leaf copies the originating frame's resolved
-allowlisted tokens plus computed font family, font size, text color, and direction. Each grid has
-its own snapshot; closing a grid's editor does not change another grid's theme.
+The active editor is mounted in `document.body`. Its host copies every token in the table above
+except `--dgr-border-radius`, as resolved on the grid frame that opened it, plus the computed font family, font size, text color,
+and direction. Each grid keeps its own copy, so closing one grid's editor doesn't change another
+grid's theme.
 
-Synchronization runs on mount/remount, root or ancestor `class`, `style`, or `data-theme`
-mutations, viewport resize, and `prefers-color-scheme` changes. Notifications are coalesced into
-one animation frame; there is no continuous polling or grid-body subscription. Removed tokens
-are removed from the host too. Built-in text editors remeasure after theme or column-width changes.
-Loading preserves the draft and pauses theme observation while the host is hidden. Resuming or
-remounting reads a fresh snapshot and remeasures the built-in editor while it is visible.
+The grid recopies the theme when the editor mounts, when `class`, `style`, or `data-theme` changes
+on the frame or an ancestor, when the viewport resizes, and when `prefers-color-scheme` changes. It
+batches these into one animation frame and doesn't poll. Tokens you remove from the frame are
+removed from the editor too. Built-in text editors remeasure after a theme or column-width change.
+While loading hides the editor, the grid keeps the draft and stops watching the theme. When the
+editor shows again, the grid recopies the theme and remeasures the built-in editor.
 
-Arbitrary CSSOM stylesheet edits, stylesheet load events, other attribute selectors, and DOM
-reparenting outside React are not automatically observed. Use the supported theme triggers when
-updating themes while editing. Root-scoped selectors and arbitrary custom properties do not copy
-to the body portal; use documented tokens or explicit classes on custom editor content. Direction
-copying preserves editor typography; it does not establish RTL grid-layout support.
+The grid doesn't notice stylesheet edits through the CSSOM, stylesheets finishing loading, changes
+to other attributes, or DOM moves made outside React. If you change the theme while an editor is
+open, use one of the triggers above. Selectors scoped to the grid root and custom properties other
+than the documented tokens don't reach the editor, so use the tokens or put classes on your custom
+editor content. The editor copies text direction for its own typography only. The grid layout
+doesn't support RTL.
 
-The grid owns the editor frame. `--dgr-editor-padding` styles built-in controls; custom editors
-own their content padding, controls, focus handling, and contrast. Keep popups inside the editor
-host to avoid outside-click commits. A custom control can use inherited tokens and `font: inherit`.
+The grid draws the editor frame. `--dgr-editor-padding` applies to built-in controls only. Custom
+editors handle their own padding, controls, focus, and contrast. Keep popups inside the editor host,
+or clicking them counts as an outside click and commits the edit. Custom controls can use the
+inherited tokens and `font: inherit`.
 
-## Examples
+## Examples and selection controls
 
-Use the token and conditional-class snippets above in your consumer application. The local app
-started by `pnpm dev` contains one basic grid at `/`; it has no theme showcase.
-The [packed-consumer example](../fixtures/shared/Example.tsx) exercises default styles, a frozen
-column and a custom Status editor without development-app styles; see
-[package verification](./PACKAGE_VERIFICATION.md). Testing independent light/dark grids, density
-changes and theme updates during editing requires a dedicated consumer scenario.
+The [packed-consumer example](../fixtures/shared/Example.tsx) uses the default styles, a frozen
+column, and a custom Status editor, without the dev app's CSS. See
+[package verification](./PACKAGE_VERIFICATION.md). No example or test covers two grids with
+different themes, density changes, or theme changes while an editor is open.
 
-Accessibility, physical mobile and the full browser matrix remain release verification gaps.
-
-Selection controls can also be replaced through `renderSelectionCheckbox`; see the
-[integration guide](./INTEGRATION.md#replaceable-selection-checkboxes). `.dgr-checkbox` styles the
-native default only. Replacement controls own their visuals and focus indicator while the gutter
-retains its dimensions and selection semantics.
+To replace the selection checkboxes, use `renderSelectionCheckbox`. See the
+[integration guide](./INTEGRATION.md#replaceable-selection-checkboxes). `.dgr-checkbox` only styles
+the default native checkbox. A replacement control draws its own visuals and focus indicator, and
+the gutter keeps its size and selection behavior.
