@@ -121,12 +121,11 @@ physical iOS and Android devices, screen readers, mobile IME input, zoom, and fo
 untested. Column resizing and reordering don't work from the keyboard. The
 [accessibility guide](./ACCESSIBILITY.md) lists this as a known limitation.
 
-`pnpm check:touch` runs Chromium touch emulation against the local dev app; CI runs it against the
-docs export with `--export`. It covers hold-and-drag
+`e2e/specs/touch.spec.ts` runs Chromium touch emulation against the `people` scenario. It covers
+hold-and-drag
 selection, touch resizing and reordering, and double-tap editing. It is separate from the consumer
 matrix and doesn't use a physical device. Follow the
 [manual accessibility and interaction matrix](./ACCESSIBILITY.md) for device testing.
 
-`pnpm check:docs` checks the dev app's single grid at `/` for structure, hydration, editing, and
-narrow layout. It doesn't check Markdown links or replace the manual matrix. The project has no
-performance benchmarks yet.
+The docs app has no browser tests; CI only builds and type-checks it. Nothing checks Markdown links,
+and the project has no performance benchmarks yet.

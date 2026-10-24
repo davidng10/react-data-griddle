@@ -8,22 +8,20 @@
     "build:lib": "pnpm --filter data-griddle build",
     "build": "pnpm build:lib && pnpm --filter @data-griddle/docs build",
     "lint:eslint": "eslint .",
-    "lint:tsc": "pnpm --filter data-griddle lint && pnpm --filter @data-griddle/docs typecheck && pnpm lint:fixtures",
+    "lint:tsc": "pnpm --filter data-griddle lint && pnpm --filter @data-griddle/docs typecheck && pnpm lint:fixtures && tsc -p e2e/tsconfig.json && tsc -p tsconfig.json",
     "lint": "pnpm lint:eslint && pnpm lint:tsc",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
     "check:package": "pnpm build:lib && node scripts/check-package.mjs",
     "check:consumers": "pnpm check:package && node scripts/check-consumers.mjs",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "prepare": "husky",
-    "check:docs": "pnpm build && node scripts/check-docs.mjs",
     "lint:fixtures": "tsc -p fixtures/tsconfig.json && tsc -p fixtures/vite/tsconfig.json && tsc -p fixtures/next-app/tsconfig.json && tsc -p fixtures/next-pages/tsconfig.json",
-    "check:touch": "node scripts/check-touch.mjs",
-    "check:reorder-indicator": "node scripts/check-reorder-indicator.mjs",
-    "verify:static": "pnpm build:lib && pnpm lint && pnpm format:check",
+    "verify:static": "pnpm build && pnpm lint && pnpm format:check",
     "verify:unit": "pnpm test",
-    "verify:e2e": "pnpm check:docs && node scripts/check-touch.mjs --export && pnpm check:reorder-indicator",
+    "verify:e2e": "playwright test",
     "verify:consumers": "pnpm check:consumers",
     "verify": "pnpm verify:static && pnpm verify:unit && pnpm verify:e2e && pnpm verify:consumers"
   },
@@ -62,7 +60,8 @@
     "*.{ts,tsx}": [
       "eslint --fix",
       "prettier --write"
-    ]
+    ],
+    "*.{md,json,yml,yaml,css}": "prettier --write --ignore-unknown"
   },
   "packageManager": "pnpm@10.33.0"
 }

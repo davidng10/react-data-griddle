@@ -167,10 +167,9 @@ the reorder. Columns with a read-only order and non-reorderable columns don't re
 
 ### Automated touch checks
 
-`pnpm check:touch` runs Chromium touch emulation against a running `pnpm dev` app. Pass a URL to
-test a served production build instead, for example `pnpm check:touch http://127.0.0.1:8080`, or
-`--export` to serve `apps/docs/out` itself, as CI does. This
-is emulation, not a physical device. `pnpm check:reorder-indicator` runs standalone Chromium pages
+`e2e/specs/touch.spec.ts` runs Chromium touch emulation (`pnpm test:e2e`) against the `people`
+scenario in `e2e/scenarios/`. This is emulation, not a physical device.
+`e2e/specs/reorder-indicator.spec.ts` runs standalone Chromium pages
 that check the guide's painted pixels and the drop results next to the checkbox gutter and at both
 ends of each zone. The checkbox gutter never moves, and the first drop position for a data column
 is directly after it.

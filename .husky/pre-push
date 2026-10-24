@@ -1,0 +1,2 @@
+pnpm build:lib
+pnpm lint:tsc
