@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import "data-griddle/styles.css";
 import "./global.css";
+import "./docs.css";
 
 import { Provider } from "./provider";
 

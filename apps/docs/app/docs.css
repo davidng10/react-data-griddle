@@ -1,0 +1,53 @@
+/*
+ * The grid ships light defaults only; Fumadocs toggles `.dark` on <html>.
+ * Neutral grays match the Fumadocs neutral theme; blue is kept only for focus and selection.
+ * Body, header and pending backgrounds stay opaque, and the skeleton backing falls back to the
+ * body, so frozen columns hide scrolled content.
+ * The open editor copies these tokens and refreshes when the <html> class changes.
+ */
+.dark .dgr-root {
+  --dgr-background: #171717;
+  --dgr-text-color: #f5f5f5;
+  --dgr-header-background: #262626;
+  --dgr-cell-border-color: #303030;
+  --dgr-header-border-color: #404040;
+  --dgr-frozen-divider-color: #525252;
+  --dgr-skeleton-bar-color: #303030;
+  --dgr-empty-color: #d4d4d4;
+
+  --dgr-focus-color: #93c5fd;
+  --dgr-selection-background: rgb(147 197 253 / 16%);
+  --dgr-selection-border-color: #93c5fd;
+  --dgr-resize-indicator-color: #93c5fd;
+  --dgr-reorder-indicator-color: #93c5fd;
+  --dgr-pending-color: #a3a3a3;
+  /* Shared by the commit flash and the editor error footer, which sits on the editor background. */
+  --dgr-error-color: #f87171;
+  --dgr-error-background: rgb(248 113 113 / 14%);
+  --dgr-editor-background: #262626;
+  --dgr-editor-shadow: 0 4px 16px rgb(0 0 0 / 50%);
+  --dgr-loading-overlay-background: rgb(23 23 23 / 65%);
+  --dgr-loading-indicator-color: #d4d4d4;
+}
+
+/*
+ * Demo cards render the grid edge to edge, so the card border is the grid's frame.
+ * Unlayered on purpose: Tailwind utilities are layered and would lose to the grid's own CSS.
+ */
+.demo-preview .dgr-root {
+  border: 0;
+  border-radius: 0;
+}
+
+/* One code surface for MDX blocks and demo sources. Opaque, so the demo's peek fade can use it. */
+:root {
+  --docs-code-background: #fff;
+}
+.dark {
+  --docs-code-background: #1e1e1e;
+}
+
+/* Full-width docs layout: the sidebar sits on the left edge instead of a centered 97rem column. */
+#nd-docs-layout {
+  --fd-layout-width: 100%;
+}
