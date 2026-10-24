@@ -1,0 +1,59 @@
+---
+title: Getting started
+description: Install Data Griddle, load its stylesheet, and render your first grid.
+---
+
+import { Demo } from "@/components/demo";
+import Basic from "@/examples/getting-started/basic";
+
+Data Griddle is a virtualized, DOM-based data grid for React. Selection, editing, and pointer state
+live in stores outside the cell-rendering path, so large datasets stay responsive while you interact
+with them.
+
+## Install
+
+Version 0.1.0 is experimental. APIs, styling contracts, and behavior may change between `0.x`
+releases, so pin an exact version and read the release notes before upgrading.
+
+```bash
+npm install --save-exact data-griddle@0.1.0
+```
+
+The package needs matching `react` and `react-dom` versions in `^18.3.1 || ^19.2.6`. It ships ESM
+only, targets ES2022, and has no CommonJS build.
+
+## Add the stylesheet
+
+The JavaScript entry does not inject CSS. Import `data-griddle/styles.css` once in your application
+entry. In Next.js, that's the root layout (App Router) or `pages/_app.tsx` (Pages Router).
+
+```tsx
+import "data-griddle/styles.css";
+```
+
+## Your first grid
+
+Click a cell and start typing to edit it, or double-click it. Use the checkboxes to select rows.
+
+<Demo file="getting-started/basic.tsx">
+  <Basic />
+</Demo>
+
+The grid does not store row data. Your commit handler must write accepted values back into `rows`.
+`getRowId` must return a stable, unique key for each row.
+
+The grid fills its parent, so give the parent a fixed height:
+
+```tsx
+<div style={{ height: 400 }}>
+  <BasicExample />
+</div>
+```
+
+## Next.js client boundary
+
+The grid uses state, effects, and event handlers, so it only runs in client components. In the App
+Router, add `"use client"` to the file that renders `DataGrid`, as in the example above. Server
+components can render that file and pass it serializable props such as `rows`. Functions like
+`getRowId`, `accessor`, and `onCellCommit` can't cross the boundary, so define them in the client
+file.
