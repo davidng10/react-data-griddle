@@ -26,4 +26,4 @@ Requires matching React/React DOM `^18.3.1 || ^19.2.6` and an explicit import of
 - No grid-level sorting, filtering or clipboard API; applications own their data and persistence.
 
 See [verification evidence](./docs/PACKAGE_VERIFICATION.md),
-[accessibility limitations](./docs/ACCESSIBILITY.md) and the [release checklist](./docs/RELEASING.md).
+[accessibility limitations](./docs/MANUAL_TESTING.md) and the [release checklist](./docs/RELEASING.md).

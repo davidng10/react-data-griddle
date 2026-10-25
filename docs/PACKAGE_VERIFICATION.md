@@ -109,7 +109,7 @@ and running a generated consumer by hand.
 Import the CSS in a Vite entry, the Next.js App Router root layout, or the Pages Router's
 `pages/_app.tsx`. Keep accessors, renderers, ID functions, and event callbacks in a Client
 Component. Server Components can pass serializable rows. See the
-[Next.js integration guide](./INTEGRATION.md#nextjs-client-boundary-and-stylesheet).
+[Next.js guide](../apps/docs/content/docs/guide/nextjs.mdx).
 
 Leave SSR on, and you don't need `ssr: false`. The server HTML may contain the labeled grid shell
 without every row, because virtualization fills in rows once the client measures the layout.
@@ -119,13 +119,13 @@ without every row, because virtualization fills in rows once the client measures
 Desktop Chromium is the only browser tested. Firefox, Safari, Chrome and Edge on other platforms,
 physical iOS and Android devices, screen readers, mobile IME input, zoom, and forced colors are all
 untested. Column resizing and reordering don't work from the keyboard. The
-[accessibility guide](./ACCESSIBILITY.md) lists this as a known limitation.
+[accessibility guide](../apps/docs/content/docs/guide/accessibility.mdx) lists this as a known limitation.
 
 `e2e/specs/touch.spec.ts` runs Chromium touch emulation against the `people` scenario. It covers
 hold-and-drag
 selection, touch resizing and reordering, and double-tap editing. It is separate from the consumer
 matrix and doesn't use a physical device. Follow the
-[manual accessibility and interaction matrix](./ACCESSIBILITY.md) for device testing.
+[manual accessibility and interaction matrix](./MANUAL_TESTING.md#manual-release-matrix) for device testing.
 
 The docs app has no browser tests; CI only builds and type-checks it. Nothing checks Markdown links,
 and the project has no performance benchmarks yet.

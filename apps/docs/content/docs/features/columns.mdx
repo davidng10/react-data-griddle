@@ -1,0 +1,79 @@
+---
+title: Columns
+description: Column widths, the fill column, resizing, reorder barriers, and action columns.
+---
+
+import { ApiTable } from "@/components/api-table";
+import { Demo } from "@/components/demo";
+import Columns from "@/examples/features/columns";
+
+For controlled, uncontrolled, and read-only column state, see
+[state ownership](../guide/state-ownership.mdx).
+
+Resize a header edge to see `onColumnWidthsChange` report the new widths. Drag Name or Department
+to reorder them. Start date is a reorder barrier, and Remove is an action column:
+
+<Demo file="features/columns.tsx">
+  <Columns />
+</Demo>
+
+## Width and fill
+
+The grid keeps explicit column widths even when they leave unused space. The last column in visual
+order with no `width` and no width override fills the remaining viewport width. Earlier columns
+without a width get the 140px default.
+
+The fill width is what's left after the checkbox gutter and every other column, frozen ones
+included. It stays within `minWidth` (default 48px) and `maxWidth`. If there isn't enough room the
+grid scrolls horizontally, and a `maxWidth` can leave a gap.
+
+## Resizing
+
+Resizing an automatic column by hand gives it an explicit width for the session, and the last
+remaining column without a width takes over filling the space. Values in `columnWidths` and
+`defaultColumnWidths` also count as explicit widths. Removing a controlled width makes the column
+automatic again if its definition has no `width`. Fill resizing caused by the container does not
+call `onColumnWidthsChange`.
+
+## Reordering
+
+Drag a header to move its column within its zone. On touch, hold the header for 500 ms first. A
+column can't move past an action column or a column with `reorderBarrier`. Set `reorderable: false`
+on a column, or on the grid, to turn reordering off. The
+[accessibility guide](../guide/accessibility.mdx#column-reordering) covers the touch gesture.
+
+## Action columns
+
+`type: 'action'` columns are never selectable, editable, resizable, or reorderable, and always act as
+a reorder barrier. Setting those props on an action column has no effect.
+
+## Props
+
+<ApiTable
+  file="column.ts"
+  name="Column"
+  pick={[
+    "width",
+    "minWidth",
+    "maxWidth",
+    "resizable",
+    "reorderable",
+    "reorderBarrier",
+    "type",
+  ]}
+/>
+
+<ApiTable
+  file="grid.ts"
+  name="DataGridProps"
+  pick={[
+    "resizable",
+    "columnWidths",
+    "defaultColumnWidths",
+    "onColumnWidthsChange",
+    "reorderable",
+    "columnOrder",
+    "defaultColumnOrder",
+    "onColumnOrderChange",
+  ]}
+/>

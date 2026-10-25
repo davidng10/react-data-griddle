@@ -1,0 +1,10 @@
+{
+  "title": "Guide",
+  "pages": [
+    "state-ownership",
+    "row-identity",
+    "styling",
+    "accessibility",
+    "nextjs"
+  ]
+}

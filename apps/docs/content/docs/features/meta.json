@@ -1,0 +1,14 @@
+{
+  "title": "Features",
+  "pages": [
+    "editing",
+    "validation-and-errors",
+    "selection",
+    "custom-checkboxes",
+    "columns",
+    "frozen-columns",
+    "custom-renderers",
+    "loading-and-empty",
+    "imperative-focus"
+  ]
+}

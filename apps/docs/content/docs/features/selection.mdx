@@ -1,0 +1,87 @@
+---
+title: Selection
+description: Cell focus, range selection, and checkbox row selection, and how to read or control them.
+---
+
+import { ApiTable } from "@/components/api-table";
+import { Demo } from "@/components/demo";
+import Selection from "@/examples/features/selection";
+
+The grid has three kinds of selection, and they don't depend on each other:
+
+- **Cell focus**: the active cell, which keyboard navigation moves and editing acts on.
+- **Range**: a rectangle of cells from an anchor to the focused cell.
+- **Row selection**: the checked rows in the checkbox gutter. It's off until you set
+  `enableRowSelection`.
+
+Checking a row doesn't move focus or change the range, and selecting a range doesn't check any
+rows.
+
+This demo controls the checked rows. **Select active** and **Clear** replace the set from outside
+the grid. **Read-only** drops the change callback, which disables the checkboxes. The text after
+the buttons comes from `onSelectionChange`:
+
+<Demo file="features/selection.tsx">
+  <Selection />
+</Demo>
+
+## Focus and ranges
+
+Click a cell to focus it. Drag to select a range, and the grid scrolls when you drag near an edge.
+Shift+click extends the range from its anchor to the clicked cell. From the keyboard, the arrow keys
+move focus and Shift+Arrows extend the range. Escape clears it. On touch, hold a cell for 500 ms
+and then drag. The [accessibility guide](../guide/accessibility.mdx#keyboard-and-focus) lists every
+key and the touch rules.
+
+Only selectable cells take focus. Action columns and columns with `selectable: false` are skipped by
+navigation and can't be part of a range.
+
+There are no controlled focus or range props, and no API to select a range from code yet. To move
+focus from code, use [`focusCell`](./imperative-focus.mdx).
+
+## Row selection
+
+Row selection follows the same controlled and uncontrolled pattern as column order and widths:
+
+- **Uncontrolled**: pass `defaultSelectedRowIds` (optional) and let the grid keep the set.
+  `onSelectedRowIdsChange` still reports changes.
+- **Controlled**: pass `selectedRowIds` and `onSelectedRowIdsChange`, and write the next set back.
+  The grid never changes the set ahead of you.
+- **Read-only**: pass `selectedRowIds` without the callback. The checkboxes are disabled.
+
+The callback receives the complete next set. Don't mutate it, and don't switch between controlled
+and uncontrolled while the grid is mounted. The header checkbox acts on every row you pass,
+including offscreen ones. Selection is disabled while loading. See
+[state ownership](../guide/state-ownership.mdx) for the full rules, and
+[custom checkboxes](./custom-checkboxes.mdx) to replace the controls.
+
+Selected IDs that are no longer in `rows` stop showing as selected, but the grid doesn't remove them
+from a controlled set. [Row identity](../guide/row-identity.mdx) covers what happens when data
+changes.
+
+## Observing selection
+
+`onSelectionChange` receives a `GridSelection` snapshot whenever focus, the range, or the checked
+rows change, including when the grid adjusts them after a data change. It doesn't fire on mount
+unless that adjustment changes something. Focus and range coordinates use `rowIndex`, which changes
+when rows move. Use `rowId` for anything you store. Don't mutate the snapshot or its set.
+
+<ApiTable file="selection.ts" name="GridSelection" />
+
+<ApiTable file="selection.ts" name="CellRange" />
+
+## Props
+
+<ApiTable
+  file="grid.ts"
+  name="DataGridProps"
+  pick={[
+    "enableRowSelection",
+    "selectedRowIds",
+    "defaultSelectedRowIds",
+    "onSelectedRowIdsChange",
+    "onSelectionChange",
+  ]}
+/>
+
+<ApiTable file="column.ts" name="Column" pick={["selectable"]} />

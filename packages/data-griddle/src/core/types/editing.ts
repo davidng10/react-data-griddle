@@ -2,6 +2,7 @@
 
 import type { CellCoord, ColumnId, RowId } from "./ids";
 
+/** Editor state. `submitting` while a save is pending, `error` after validation fails */
 export type EditStatus = "editing" | "submitting" | "error";
 
 export type EditState =
@@ -12,21 +13,22 @@ export type EditState =
       | { status: "error"; error: unknown }
     ));
 
-/**
- * Payload handed to `onCommit` / `onCellCommit`. The consumer applies `nextValue` to its own
- * data and lets it flow back in as new `rows`. `previousValue` enables optimistic
- * rollback on rejection.
- */
+/** Edit passed to `onCommit` and `onCellCommit` */
 export interface CellCommit<T> {
   rowId: RowId;
+  /** Current row */
   row: T;
   columnId: ColumnId;
+  /** Value before the edit */
   previousValue: unknown;
+  /** Parsed, validated value to save */
   nextValue: unknown;
 }
 
-/** A rejected asynchronous cell commit, exposed so consumers can notify or log the failure. */
+/** Failed save passed to `onCellCommitError` */
 export interface CellCommitFailure<T> {
+  /** The failed edit */
   update: CellCommit<T>;
+  /** Thrown or rejected value */
   error: unknown;
 }

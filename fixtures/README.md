@@ -60,7 +60,7 @@ can reach, which you have to set up separately.
 
 The [shared example](./shared/Example.tsx) has default selection controls, a frozen Name column,
 offscreen focus, built-in editing, a custom Status editor, and initial loading, refresh, and empty
-states. It does not cover the full [manual accessibility matrix](../docs/ACCESSIBILITY.md). Make
+states. It does not cover the full [manual accessibility matrix](../docs/MANUAL_TESTING.md#manual-release-matrix). Make
 lasting changes in `shared/Example.tsx` and rerun the check. Edits in the temporary directory are
 thrown away.
 

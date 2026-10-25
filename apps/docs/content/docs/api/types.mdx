@@ -1,0 +1,55 @@
+---
+title: Types
+description: Commit payloads, selection snapshots, checkbox props, and identifiers.
+---
+
+import { ApiTable, TypeDeclaration } from "@/components/api-table";
+
+## Editing
+
+### CellCommit
+
+<ApiTable file="editing.ts" name="CellCommit" />
+
+### CellCommitFailure
+
+<ApiTable file="editing.ts" name="CellCommitFailure" />
+
+### EditStatus
+
+<TypeDeclaration file="editing.ts" name="EditStatus" />
+
+### SelectOption
+
+<ApiTable file="column.ts" name="SelectOption" />
+
+## Selection
+
+### GridSelection
+
+<ApiTable file="selection.ts" name="GridSelection" />
+
+### CellRange
+
+<ApiTable file="selection.ts" name="CellRange" />
+
+### SelectionCheckboxProps
+
+`kind` tells the select-all control apart from a row control. Only row controls have `rowId` and
+`rowIndex`.
+
+<TypeDeclaration file="grid.ts" name="SelectionCheckboxProps" />
+
+## Identifiers
+
+### RowId
+
+<TypeDeclaration file="ids.ts" name="RowId" />
+
+### ColumnId
+
+<TypeDeclaration file="ids.ts" name="ColumnId" />
+
+### CellCoord
+
+<ApiTable file="ids.ts" name="CellCoord" />

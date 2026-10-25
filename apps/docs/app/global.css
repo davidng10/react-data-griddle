@@ -1,0 +1,8 @@
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+
+/* White page in light mode; `.dark` from the neutral theme still overrides it. */
+@theme {
+  --color-fd-background: #fff;
+}

@@ -2,17 +2,21 @@
 
 import type { CellCoord, RowId } from "./ids";
 
+/** Rectangular cell range */
 export interface CellRange {
+  /** Corner where the range started */
   anchor: CellCoord;
+  /** Moving corner, same as the focused cell */
   focus: CellCoord;
 }
 
+/** Selection passed to `onSelectionChange`. Don't mutate it */
 export interface GridSelection {
-  /** Drives keyboard navigation. */
+  /** Focused cell */
   focusedCell: CellCoord | null;
-  /** Active rectangular range (overlay-drawn), or null. */
+  /** Selected range */
   range: CellRange | null;
-  /** Checkbox row selection, keyed by stable RowId. */
+  /** Checked row ids */
   selectedRows: Set<RowId>;
 }
 

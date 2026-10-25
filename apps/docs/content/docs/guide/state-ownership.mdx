@@ -1,0 +1,72 @@
+---
+title: State ownership
+description: What your application owns, what the grid owns, and how controlled and uncontrolled state work.
+---
+
+import { ApiTable } from "@/components/api-table";
+
+Import components and types from `data-griddle` and styles from `data-griddle/styles.css`. Stores,
+geometry helpers, and deep imports into the package aren't public API. The API may change before
+1.0.
+
+## Who owns what
+
+Your application owns `rows`, `columns`, `loading`, and saving data. When data or columns change,
+pass new arrays and objects instead of mutating the old ones. The grid owns focus, ranges, drafts,
+and gesture state. Checkbox row selection is separate from cell focus and ranges.
+
+## Controlled and uncontrolled state
+
+| State group   | Controlled value | Initial uncontrolled value | Change callback          |
+| ------------- | ---------------- | -------------------------- | ------------------------ |
+| Selected rows | `selectedRowIds` | `defaultSelectedRowIds`    | `onSelectedRowIdsChange` |
+| Column order  | `columnOrder`    | `defaultColumnOrder`       | `onColumnOrderChange`    |
+| Column widths | `columnWidths`   | `defaultColumnWidths`      | `onColumnWidthsChange`   |
+
+Leave out the controlled value and the grid keeps that state itself. The grid reads a default only
+on mount, so changing it later doesn't reset anything. In uncontrolled mode the change callback is
+optional and reports user changes. In controlled mode, the callback passes the complete next set,
+order array, or width map, and the change only happens when you pass that value back. The grid never
+updates a controlled value ahead of you. A controlled value without its callback is read-only, and
+the grid disables the matching controls. Don't switch a group between controlled and uncontrolled
+while the grid is mounted.
+
+## Defaults
+
+Row selection is off by default (`enableRowSelection={false}`). Reordering and resizing are on by
+default. All three are disabled while loading. Normal columns are selectable, resizable, and
+reorderable by default, and editing is opt-in. Action columns can't do any of these and act as
+reorder barriers. `rowHeight` defaults to 32px. Overscan defaults to 6 rows and 2 center columns.
+[Columns](../features/columns.mdx) describes column sizing defaults and limits.
+
+## Observing selection
+
+`onSelectionChange` receives a snapshot of focus, range, and selected rows whenever they change,
+including when the grid adjusts them after a data change. It doesn't fire on mount unless that
+adjustment changes something. In controlled row selection, it also fires with the requested row
+set, which only takes effect once you update `selectedRowIds`. Don't mutate snapshots or their sets.
+Focus and range coordinates use `rowIndex`. Use `rowId` for anything you store, and for the
+[`focusCell` command](../features/imperative-focus.mdx). There are no controlled focus or range
+props, and no API to select a range from code yet.
+
+## Props
+
+<ApiTable
+  file="grid.ts"
+  name="DataGridProps"
+  pick={[
+    "enableRowSelection",
+    "selectedRowIds",
+    "defaultSelectedRowIds",
+    "onSelectedRowIdsChange",
+    "onSelectionChange",
+    "reorderable",
+    "columnOrder",
+    "defaultColumnOrder",
+    "onColumnOrderChange",
+    "resizable",
+    "columnWidths",
+    "defaultColumnWidths",
+    "onColumnWidthsChange",
+  ]}
+/>

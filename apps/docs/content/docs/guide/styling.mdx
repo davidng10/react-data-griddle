@@ -1,4 +1,11 @@
-# Styling Data Griddle
+---
+title: Styling
+description: Theme tokens, part and state selectors, conditional classes, content overflow, and editor themes.
+---
+
+import { Demo } from "@/components/demo";
+import StylingClasses from "@/examples/guide/styling-classes";
+import StylingTheme from "@/examples/guide/styling-theme";
 
 You style the grid with four things: the default CSS, `--dgr-*` variables, part and state
 selectors, and column class callbacks. All of them may change before 1.0. Import
@@ -15,6 +22,15 @@ To round the outer frame, set `style={{ borderRadius: 8 }}` on `DataGrid`, or se
 `--dgr-border-radius: 8px` in a theme. The default is 4px. The inner scroller clips its content to
 the rounded corners, but the outer frame doesn't clip overflow. Editors mounted in `document.body`
 sit outside the scroller and aren't clipped.
+
+This grid sets a dark theme through its inline `style`, so it stays dark whichever site theme you
+pick. Open an editor to see it copy the tokens.
+
+<Demo file="guide/styling-theme.tsx">
+  <StylingTheme />
+</Demo>
+
+The same tokens work in a stylesheet, scoped to a class you pass as `className`:
 
 ```css
 .accounts {
@@ -124,17 +140,12 @@ own typography and focus behavior.
 
 ## Conditional classes
 
-```tsx
-const columns: Column<Entry>[] = [
-  {
-    id: "balance",
-    name: "Balance",
-    accessor: (row) => row.balance,
-    cellClassName: (ctx) => (Number(ctx.value) < 0 ? "negative" : undefined),
-    headerClassName: "numeric-heading",
-  },
-];
-```
+`cellClassName` and `headerClassName` take a string or a callback. This ledger marks negative
+balances and truncates long account names with an ellipsis:
+
+<Demo file="guide/styling-classes.tsx">
+  <StylingClasses />
+</Demo>
 
 ```ts
 cellClassName?: string | ((ctx: CellRenderContext<T>) => string | undefined);
@@ -160,21 +171,7 @@ Larger fonts or padding don't make rows taller, so pick a `rowHeight` that fits 
 The grid sets cell sizes and clips content that overflows. Cells and headers show one line and
 don't add an ellipsis. That applies to default values, pending values, and the drag ghost too. For
 truncation, tooltips, or other layout, use `cellClassName`, `headerClassName`, `renderCell`, and
-`renderHeader`.
-
-To add an ellipsis to a plain value or heading, add a class:
-
-```tsx
-const columns: Column<Entry>[] = [
-  {
-    id: "name",
-    name: "Name",
-    accessor: (row) => row.name,
-    cellClassName: "truncate",
-    headerClassName: "truncate",
-  },
-];
-```
+`renderHeader`. The `truncate` class in the demo above adds an ellipsis to a plain value or heading:
 
 ```css
 .truncate {
@@ -200,8 +197,8 @@ pending-value overlay or the drag ghost.
 ## Editor themes
 
 The active editor is mounted in `document.body`. Its host copies every token in the table above
-except `--dgr-border-radius`, as resolved on the grid frame that opened it, plus the computed font family, font size, text color,
-and direction. Each grid keeps its own copy, so closing one grid's editor doesn't change another
+except `--dgr-border-radius`, as resolved on the grid frame that opened it, plus the computed font
+family, font size, text color, and direction. Each grid keeps its own copy, so closing one grid's editor doesn't change another
 grid's theme.
 
 The grid recopies the theme when the editor mounts, when `class`, `style`, or `data-theme` changes
@@ -220,17 +217,16 @@ doesn't support RTL.
 
 The grid draws the editor frame. `--dgr-editor-padding` applies to built-in controls only. Custom
 editors handle their own padding, controls, focus, and contrast. Keep popups inside the editor host,
-or clicking them counts as an outside click and commits the edit. Custom controls can use the
-inherited tokens and `font: inherit`.
+or clicking them counts as an outside click and commits the edit. See
+[custom editors](../features/editing.mdx#custom-editors). Custom controls can use the inherited
+tokens and `font: inherit`.
 
-## Examples and selection controls
+## Selection controls
 
-The [packed-consumer example](../fixtures/shared/Example.tsx) uses the default styles, a frozen
-column, and a custom Status editor, without the dev app's CSS. See
-[package verification](./PACKAGE_VERIFICATION.md). No example or test covers two grids with
-different themes, density changes, or theme changes while an editor is open.
+To replace the selection checkboxes, use `renderSelectionCheckbox`. See
+[custom checkboxes](../features/custom-checkboxes.mdx). `.dgr-checkbox` only styles the default
+native checkbox. A replacement control draws its own visuals and focus indicator, and the gutter
+keeps its size and selection behavior.
 
-To replace the selection checkboxes, use `renderSelectionCheckbox`. See the
-[integration guide](./INTEGRATION.md#replaceable-selection-checkboxes). `.dgr-checkbox` only styles
-the default native checkbox. A replacement control draws its own visuals and focus indicator, and
-the gutter keeps its size and selection behavior.
+No example or test covers two grids with different themes, density changes, or theme changes while
+an editor is open.

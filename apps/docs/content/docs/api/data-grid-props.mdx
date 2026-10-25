@@ -1,0 +1,30 @@
+---
+title: DataGrid
+description: Props, the imperative handle, and focus results for the DataGrid component.
+---
+
+import { ApiTable, TypeDeclaration } from "@/components/api-table";
+
+## DataGridProps
+
+`T` is your row type. It is inferred from `rows` and `columns`.
+
+<ApiTable file="grid.ts" name="DataGridProps" />
+
+## DataGridHandle
+
+Pass a ref to reach the grid's commands:
+
+```tsx
+const gridRef = useRef<DataGridHandle>(null);
+
+<DataGrid ref={gridRef} {...props} />;
+
+gridRef.current?.focusCell({ rowId: 42, columnId: "name" });
+```
+
+<ApiTable file="grid.ts" name="DataGridHandle" />
+
+## FocusCellResult
+
+<TypeDeclaration file="grid.ts" name="FocusCellResult" />

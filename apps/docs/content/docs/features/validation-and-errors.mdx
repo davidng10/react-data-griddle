@@ -1,0 +1,72 @@
+---
+title: Validation and errors
+description: Reject invalid drafts, save asynchronously, and report failed saves to your users.
+---
+
+import { ApiTable } from "@/components/api-table";
+import { Demo } from "@/components/demo";
+import SaveErrors from "@/examples/features/save-errors";
+import Validation from "@/examples/features/validation";
+
+## Validation
+
+`parseValue(draft, ctx)` converts the draft synchronously, and `validate(parsedValue, ctx)` checks
+the result. Return a non-empty message to reject the value, or `null`, `undefined`, or an empty
+string to accept it. Keep parsers and validators pure, and don't throw from them. Turn bad input
+into a value your validator rejects instead. An exception there is not a save error and doesn't
+call `onCellCommitError`.
+
+If an explicit save is rejected, the editor stays open with its draft, and `ctx.error` and
+`ctx.status` show the error. After an error, the draft is revalidated 200ms after the user stops
+typing, and saving validates the latest draft immediately. If an implicit save is rejected, the
+grid discards the draft so the user isn't stuck in the editor.
+
+Try a salary of `abc`, `10,000`, or `$85,000`, or a start date that isn't `YYYY-MM-DD`:
+
+<Demo file="features/validation.tsx">
+  <Validation />
+</Demo>
+
+## Asynchronous saves
+
+If the commit callback returns a promise, the cell shows the new value and a spinner until it
+settles. If the callback throws or the promise rejects, the grid clears the pending value, flashes
+the cell, and calls `onCellCommitError({ update, error })`. The draft isn't reopened, and focus may
+have moved on. Show failure or retry UI yourself, and undo any optimistic change you made to your
+rows. The grid never changes or rolls back your rows.
+
+On success, update `rows` with the saved value before your promise resolves. Otherwise the cell goes
+back to showing the old accessor value. Loading doesn't cancel pending saves.
+
+## Save-error feedback
+
+The grid doesn't announce save errors. Use `onCellCommitError` to show an accessible message. Keep
+the live region mounted outside the grid and outside anything that becomes inert during loading.
+Localize the wording, and don't announce twice if you already have a notification system.
+
+Edit a cell with **Fail saves** checked to see the spinner, the flash, and the message. Uncheck it
+to save normally:
+
+<Demo file="features/save-errors.tsx">
+  <SaveErrors />
+</Demo>
+
+`saveCell` stands in for your own save function. The example doesn't roll anything back, so undo
+any optimistic row update yourself. Test the announcement with a real screen reader, including
+repeated failures and failures that arrive while loading.
+
+## Props
+
+<ApiTable
+  file="column.ts"
+  name="Column"
+  pick={["parseValue", "validate", "onCommit"]}
+/>
+
+<ApiTable
+  file="grid.ts"
+  name="DataGridProps"
+  pick={["onCellCommit", "onCellCommitError"]}
+/>
+
+<ApiTable file="editing.ts" name="CellCommitFailure" />

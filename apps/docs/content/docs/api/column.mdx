@@ -1,0 +1,36 @@
+---
+title: Column
+description: The column schema and the contexts passed to its render and edit hooks.
+---
+
+import { ApiTable, TypeDeclaration } from "@/components/api-table";
+
+## Column
+
+<ApiTable file="column.ts" name="Column" />
+
+## CellRenderContext
+
+Passed to `renderCell`, `cellClassName`, and `editable`.
+
+<ApiTable file="column.ts" name="CellRenderContext" />
+
+## HeaderRenderContext
+
+Passed to `renderHeader` and `headerClassName`.
+
+<ApiTable file="column.ts" name="HeaderRenderContext" />
+
+## CellEditContext
+
+Passed to `renderEditor`, `parseValue`, and `validate`. Extends `CellRenderContext`.
+
+<ApiTable file="column.ts" name="CellEditContext" />
+
+## CellType
+
+<TypeDeclaration file="column.ts" name="CellType" />
+
+## FrozenZone
+
+<TypeDeclaration file="column.ts" name="FrozenZone" />

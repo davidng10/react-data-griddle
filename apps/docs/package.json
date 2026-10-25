@@ -9,15 +9,26 @@
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@radix-ui/react-select": "2.4.1",
+    "@radix-ui/react-slider": "1.6.1",
+    "@radix-ui/react-switch": "1.4.1",
     "data-griddle": "workspace:*",
+    "fumadocs-core": "16.17.8",
+    "fumadocs-mdx": "15.4.10",
+    "fumadocs-typescript": "5.5.2",
+    "fumadocs-ui": "16.17.8",
     "next": "16.3.6",
     "react": "19.2.6",
     "react-dom": "19.2.6"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/mdx": "2.0.14",
+    "@types/node": "24.12.3",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "@types/node": "24.12.3",
+    "postcss": "8.5.31",
+    "tailwindcss": "4.3.3",
     "typescript": "6.0.2"
   }
 }
