@@ -1,0 +1,32 @@
+---
+title: Frozen columns
+description: Pin columns to the left or right edge of the grid.
+---
+
+import { ApiTable } from "@/components/api-table";
+import { Demo } from "@/components/demo";
+import FrozenColumns from "@/examples/features/frozen-columns";
+
+Set `frozen: "left"` or `frozen: "right"` to pin a column to that edge. Scroll this grid
+horizontally: Name stays on the left and Salary on the right.
+
+<Demo file="features/frozen-columns.tsx">
+  <FrozenColumns />
+</Demo>
+
+Frozen zones decide where a column appears, whatever the column order says. Reordering stays within
+a zone.
+
+## Costs and narrow screens
+
+The grid always renders frozen columns and does not virtualize them horizontally, so keep few frozen
+columns on each side in large grids. It doesn't unpin frozen columns on narrow screens, so your
+application has to adjust frozen widths and columns itself.
+
+Keep the total width of frozen columns and the gutter well below the container width, so the center
+zone still has room. For narrow layouts and orientation changes, change the column props based on
+container width. For example, unpin columns below a width you choose.
+
+## Props
+
+<ApiTable file="column.ts" name="Column" pick={["frozen"]} />

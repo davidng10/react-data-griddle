@@ -1,0 +1,57 @@
+---
+title: Imperative focus
+description: Focus a cell by row and column ID from outside the grid.
+---
+
+import { ApiTable, TypeDeclaration } from "@/components/api-table";
+import { Demo } from "@/components/demo";
+import ImperativeFocus from "@/examples/features/imperative-focus";
+
+Pass a ref to `DataGrid` and call `focusCell({ rowId, columnId })`. Row 80 is offscreen, so the grid
+scrolls to it. Row 500 doesn't exist, so the call fails with `row-not-found`:
+
+<Demo file="features/imperative-focus.tsx">
+  <ImperativeFocus />
+</Demo>
+
+`DataGrid` still infers the row type when you pass an object ref or a callback ref. The handle uses
+`forwardRef` and `useImperativeHandle` and works with React 18 and 19. Read `ref.current` when you
+call the command, because the handle can change after a render. The ref is `null` while the grid is
+unmounted.
+
+## Results
+
+`focusCell` returns a `FocusCellResult`. It looks up the row in the current `rows` with `getRowId`,
+then the column, and returns the first failure in this order:
+
+| Order | Result                                      | Condition                                                                        |
+| ----- | ------------------------------------------- | -------------------------------------------------------------------------------- |
+| 1     | `{ ok: false, reason: "row-not-found" }`    | No currently supplied row has that ID                                            |
+| 2     | `{ ok: false, reason: "column-not-found" }` | No current column has that ID                                                    |
+| 3     | `{ ok: false, reason: "not-selectable" }`   | Action column or `selectable: false`                                             |
+| 4     | `{ ok: false, reason: "busy" }`             | Loading; any active/preserved editor draft; selection, resize or reorder gesture |
+| 5     | `{ ok: true }`                              | Accepted                                                                         |
+
+A pointer held down on a header counts as busy even before it has moved far enough to start a
+reorder. A pending async save doesn't block focus, even on the cell being saved, but that cell can't
+be edited until the save finishes. A failed call doesn't change selection, focus, or scroll position,
+and never saves or discards a draft.
+
+## What success does
+
+On success, the grid focuses its scroll container on the target cell, clears the range, keeps the
+checkbox selection, and asks the browser to scroll the cell into view. This works for offscreen rows
+and center columns. Targeting a frozen column doesn't change the horizontal scroll position. The
+cell may not be rendered yet when the call returns, and it can't be fully visible if the viewport is
+smaller than the cell plus the frozen zones. `focusCell` never fetches or paginates. Use
+`onSelectionChange` to track focus, not the internal stores.
+
+Pressing a toolbar button outside the grid can save an open editor before the button's click handler
+calls `focusCell`. `focusCell` itself never saves. To check focus while editing without that save,
+call it from a keyboard handler without moving focus out of the editor.
+
+## API
+
+<ApiTable file="grid.ts" name="DataGridHandle" />
+
+<TypeDeclaration file="grid.ts" name="FocusCellResult" />

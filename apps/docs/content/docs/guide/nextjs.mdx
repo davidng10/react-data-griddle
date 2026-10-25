@@ -1,0 +1,53 @@
+---
+title: Next.js
+description: Server rendering, the client boundary, and where to import the stylesheet.
+---
+
+import { Demo } from "@/components/demo";
+import People from "@/examples/guide/nextjs-people";
+
+## Stylesheet
+
+Keep SSR enabled. Import the stylesheet once, in `app/layout.tsx` (App Router) or `pages/_app.tsx`
+(Pages Router):
+
+```tsx
+import "data-griddle/styles.css";
+```
+
+## Client boundary
+
+Define accessors, renderers, ID functions, and event callbacks inside a Client Component. A Server
+Component can pass in serializable row data. This page is a Server Component, and it renders the
+client file below with `initialRows`:
+
+```tsx
+<People
+  initialRows={[
+    { id: 1, name: "Ada" },
+    { id: 2, name: "Lin" },
+  ]}
+/>
+```
+
+<Demo file="guide/nextjs-people.tsx" height={240}>
+  <People
+    initialRows={[
+      { id: 1, name: "Ada" },
+      { id: 2, name: "Lin" },
+      { id: 3, name: "Sam" },
+      { id: 4, name: "Maya" },
+    ]}
+  />
+</Demo>
+
+Server Components can't pass column definitions that contain functions, so `columns` stays in the
+client file.
+
+## What the server renders
+
+The library entry keeps its `"use client"` directive, which doesn't turn off server rendering. The
+server renders a labeled grid shell. Rows and center headers depend on layout measurement, so they
+may be missing from the initial HTML. Put content that must be indexed for search outside the grid.
+
+The same component and stylesheet work in the Pages Router, without an `ssr: false` wrapper.

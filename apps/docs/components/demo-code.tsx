@@ -19,7 +19,7 @@ export function DemoCode({ collapsible, children }: DemoCodeProps) {
 
   return (
     <div className="relative border-t bg-(--docs-code-background)">
-      <div className={collapsed ? "max-h-40 overflow-hidden" : undefined}>
+      <div className={collapsed ? "max-h-40 overflow-hidden p-4" : undefined}>
         {children}
       </div>
       {collapsible && (

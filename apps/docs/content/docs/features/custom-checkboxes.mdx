@@ -1,0 +1,69 @@
+---
+title: Custom checkboxes
+description: Replace the row and header selection checkboxes with your own control.
+---
+
+import { ApiTable } from "@/components/api-table";
+import { Demo } from "@/components/demo";
+import CustomCheckboxes from "@/examples/features/custom-checkboxes";
+
+`renderSelectionCheckbox(props: SelectionCheckboxProps)` replaces the row checkboxes and the header
+checkbox. Without it, the grid uses native checkboxes. The renderer runs inside the selection gutter,
+so selection changes don't re-render cells. Keep the renderer pure and call the callbacks from event
+handlers.
+
+This control is a 32px `button` with checkbox semantics, in 40px rows:
+
+<Demo file="features/custom-checkboxes.tsx">
+  <CustomCheckboxes />
+</Demo>
+
+## The props
+
+`SelectionCheckboxProps` is a discriminated union with:
+
+- `kind: "row"` with `rowId` and current zero-based `rowIndex`, or `kind: "all"` without a row.
+- `checked`, `indeterminate`, `disabled`, `readOnly`, and `"aria-label"`.
+- `onChange(): void`, which asks the grid to toggle selection. It takes no event and no checked
+  value.
+
+`disabled` is true while loading, when selection is read-only, and when there are no rows for the
+header to select. `readOnly` is true when selection is controlled without a callback. A row
+control's `indeterminate` is always false. The default accessible names are "Select all rows" and
+"Select row N", where N is the one-based current row position. You can use `rowId` to look up a more
+descriptive name, as long as the label still makes sense on its own.
+
+## What a toggle does
+
+The header checkbox acts on every row you pass, including offscreen rows that aren't rendered. An
+unchecked header selects all rows, and a checked or mixed header clears them. A row checkbox
+toggles that row's ID. `onChange` always reads the latest rows and state, and does nothing while
+loading, when selection is read-only, or when the row is gone, even if your control kept an old
+callback. You still need to pass `disabled` through to your control.
+
+## Requirements
+
+A custom control must reflect every state, expose checkbox semantics including the mixed state,
+show a visible focus indicator, and activate from the keyboard with at least Space. A native button
+already handles Space and Enter. If you render a native checkbox, set its DOM `indeterminate`
+property. If a component library calls back with an event or a value, call `props.onChange()` from
+it exactly once, and don't compute the next selection yourself. The gutter stops keyboard and
+pointer-down events from reaching cell gestures.
+
+Keep controls inside the gutter, which stays 40px wide, and make their pointer and touch targets
+large enough. The example uses a 32px button in 40px rows. Choose the row height and target size for
+your users, leave space between targets, and test with zoom, touch, and assistive technology. A
+small checkmark is not a large enough target on its own. A disabled or read-only control must not
+activate. Rendering the control into another portal takes it out of the gutter and isn't supported.
+All of this applies to any nested elements inside your control too. Checking the accessibility tree
+is not the same as testing with a screen reader.
+
+For controlled and read-only selection, see [state ownership](../guide/state-ownership.mdx).
+
+## Props
+
+<ApiTable
+  file="grid.ts"
+  name="DataGridProps"
+  pick={["enableRowSelection", "renderSelectionCheckbox", "rowHeight"]}
+/>

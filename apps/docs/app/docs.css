@@ -37,6 +37,7 @@
 .demo-preview .dgr-root {
   border: 0;
   border-radius: 0;
+  padding: 24px;
 }
 
 /* One code surface for MDX blocks and demo sources. Opaque, so the demo's peek fade can use it. */
@@ -53,47 +54,43 @@
 }
 
 /*
- * API tables: one flat row per prop, Ant Design style. Scrolls inside its own box on narrow
- * screens instead of widening the page.
+ * Every docs table (`DocsTable`): flat rows, a muted header, Ant Design style. Prose still styles
+ * the cell content (code, links, bold), so it matches the body text; these rules only replace
+ * prose's table frame. Unlayered, so they win over the layered prose plugin. The wrapper draws the
+ * frame and scrolls on narrow screens instead of widening the page.
  */
-.api-table {
+.docs-table {
   margin-block: 1.5rem;
   overflow-x: auto;
   border: 1px solid var(--color-fd-border);
   border-radius: 0.75rem;
+}
+.docs-table table {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  overflow: visible;
   font-size: 0.875rem;
-  /* Prose sets a fixed 1.75rem leading for 16px text; `not-prose` doesn't stop inheritance. */
   line-height: 1.5;
 }
-.api-table table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.api-table th {
-  background: var(--color-fd-muted);
-  color: var(--color-fd-muted-foreground);
-  font-weight: 500;
-  text-align: left;
-}
-.api-table th,
-.api-table td {
+/* Prose keeps the row dividers: a bottom border on every cell outside the last row. */
+.docs-table :is(th, td) {
+  border-inline-start: none;
   padding: 0.5rem 1rem;
   vertical-align: top;
 }
-.api-table tbody tr {
-  border-top: 1px solid var(--color-fd-border);
+.docs-table th {
+  color: var(--color-fd-muted-foreground);
+  font-weight: 400;
 }
-.api-table code,
+
+/* API tables: the Property, Type and Default columns. */
 .api-table-name,
 .api-table-type,
 .api-table-code {
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 0.8125rem;
-}
-.api-table td code {
-  padding: 0.0625rem 0.25rem;
-  border-radius: 0.25rem;
-  background: var(--color-fd-muted);
 }
 .api-table-name {
   font-weight: 600;
@@ -117,4 +114,24 @@
 }
 .api-table th:nth-child(2) {
   min-width: 16rem;
+}
+
+/*
+ * Tailwind preflight strips native button and input chrome. Demos use plain elements so readers
+ * can copy them, so give those elements a visible shape again. The editor is mounted in `body`,
+ * outside the preview. `:where` keeps the grid's own control styles in charge.
+ */
+.demo-preview :where(button, input:not([type="checkbox"])),
+.dgr-editor-host :where(button, input:not([type="checkbox"])) {
+  border: 1px solid var(--color-fd-border);
+  border-radius: 0.375rem;
+  background: var(--color-fd-background);
+  padding: 0.125rem 0.5rem;
+}
+.demo-preview :where(button:not(:disabled)),
+.dgr-editor-host :where(button:not(:disabled)) {
+  cursor: pointer;
+}
+.demo-preview :where(button:disabled) {
+  opacity: 0.5;
 }

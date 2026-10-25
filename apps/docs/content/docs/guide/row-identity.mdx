@@ -1,0 +1,36 @@
+---
+title: Row identity
+description: Stable row and column IDs, and how focus, selection, order, widths, and drafts follow them when data changes.
+---
+
+## Stable IDs
+
+`getRowId(row, index)` must return a unique, stable string or number. If rows can be reordered,
+filtered, or paginated, use a key from the data, not the index. Keep each `column.id` unique and
+stable when columns change. An ID names a record or field, so a new ID is a new target. The grid
+only knows about the rows you currently pass. It doesn't fetch or paginate, and it doesn't keep
+selections for rows that are gone.
+
+## Focus, ranges, and selection
+
+When data changes, focus and both range ends follow their row IDs to the new indices. Removing the
+focused row or column clears focus, and removing the row or column at either end of the range
+clears the range. Selected row IDs that are no longer in `rows` stop showing as selected. The grid
+doesn't call `onSelectedRowIdsChange` to remove them from a controlled set. If the ID is still in
+your set when its row comes back, it shows as checked again. In uncontrolled mode, the grid forgets
+those IDs. Changing a column's options doesn't clear existing focus, but later focus commands check
+whether the column is selectable.
+
+## Column order and widths
+
+Column order skips removed and duplicate IDs and adds new columns at the end in schema order.
+Frozen zones still decide where a column appears. Reordering stays within a zone and can't cross a
+barrier. Width overrides apply by column ID and are clamped to the column's current limits. The grid
+keeps overrides for missing columns, so a column that comes back gets its old width. None of these
+adjustments, and no automatic fill sizing, call the order or width callbacks.
+
+## Drafts and pending saves
+
+A draft and a pending save follow their row ID. If the edited row or column disappears, the grid
+keeps the draft and shows a notice with a discard button until the target comes back or the user
+discards it. Loading pauses the editor and its callbacks without saving. Pending saves continue.

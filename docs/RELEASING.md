@@ -73,7 +73,7 @@ already matches this repository. See [npm trusted publishing](https://docs.npmjs
 
 1. Review the version, changelog, and any migration notes for breaking changes in the release PR.
 2. Confirm that CI passes and the release is ready to ship. CI only runs Chromium, so work through
-   the [manual matrix](ACCESSIBILITY.md#manual-release-matrix) when a change affects browsers,
+   the [manual matrix](./MANUAL_TESTING.md#manual-release-matrix) when a change affects browsers,
    mobile, or assistive technology. CI also doesn't review licenses, examples, dependencies, or
    tracked files and history. You have to check those yourself, and the gaps found when preparing
    0.1.0 are still open.

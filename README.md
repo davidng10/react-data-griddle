@@ -125,7 +125,7 @@ data.
 Your application supplies `data` and `isFetching`. The grid does not fetch or cache data. To keep the
 current rows visible during a sort, filter, or page request, keep passing them with `loading` set.
 While loading, the grid ignores input inside itself and pauses any open editor without losing its
-draft. The [loading guide](./docs/LOADING.md) has the full state table and interaction rules.
+draft. The [loading guide](./apps/docs/content/docs/features/loading-and-empty.mdx) has the full state table and interaction rules.
 
 ## Columns
 
@@ -145,7 +145,7 @@ change callback. Reordering and resizing work without any props. If you pass a c
 without its change callback, the grid treats it as read-only and disables the matching UI.
 
 Columns without a `width` get 140px, except the last one in visual order, which fills the remaining
-width. The [column guide](./docs/COLUMNS.md) covers fill width, resizing, and frozen-column costs.
+width. The [column guide](./apps/docs/content/docs/features/columns.mdx) covers fill width, resizing, and frozen-column costs.
 
 ## Styling and themes
 
@@ -160,20 +160,22 @@ Cells and headers clip overflow but don't add an ellipsis. To truncate, add CSS 
 classes or style the content inside a custom renderer. Set geometry with `rowHeight` and column
 widths, and appearance with CSS.
 
-The [styling contract](./docs/STYLING.md) lists tokens, defaults, parts, callback contexts, and the
+The [styling contract](./apps/docs/content/docs/guide/styling.mdx) lists tokens, defaults, parts, callback contexts, and the
 limits of portal theme syncing, with theme and conditional-class examples.
 
 ## Integration APIs
 
-The [integration guide](./docs/INTEGRATION.md) covers controlled, uncontrolled, and read-only state,
-stable identity, editing and persistence, custom selection controls, and
-`DataGridHandle.focusCell`. Stores and geometry helpers are private. The
+The guides cover [controlled, uncontrolled, and read-only state](./apps/docs/content/docs/guide/state-ownership.mdx),
+[stable identity](./apps/docs/content/docs/guide/row-identity.mdx),
+[editing](./apps/docs/content/docs/features/editing.mdx) and [persistence](./apps/docs/content/docs/features/validation-and-errors.mdx),
+[custom selection controls](./apps/docs/content/docs/features/custom-checkboxes.mdx), and
+[`DataGridHandle.focusCell`](./apps/docs/content/docs/features/imperative-focus.mdx). Stores and geometry helpers are private. The
 [package verification guide](./docs/PACKAGE_VERIFICATION.md) lists the exact tested versions and
 known gaps.
 
 ## Accessibility and interaction
 
-The [keyboard, touch, and accessibility guide](./docs/ACCESSIBILITY.md) covers navigation, tab
+The [keyboard, touch, and accessibility guide](./apps/docs/content/docs/guide/accessibility.mdx) covers navigation, tab
 order for native controls, editor behavior, known touch and column interaction gaps, and the manual
 test matrix. The grid implements ARIA semantics and keyboard navigation, but nobody has tested it on
 target browsers, physical devices, or screen readers yet. The grid doesn't unpin frozen columns on
@@ -185,11 +187,12 @@ To work on the grid itself, see [CONTRIBUTING.md](./CONTRIBUTING.md) for setup, 
 request conventions.
 
 - `packages/data-griddle/`: library source, styles, tests, ESM build, and declarations.
-- `apps/docs/`: Next.js App Router dev app with one grid.
+- `apps/docs/`: the documentation site (Fumadocs on the Next.js App Router), with live demos. Its
+  pages live in `apps/docs/content/docs/`. It isn't hosted yet, so run `pnpm dev` to read it.
 - `fixtures/`: packed-consumer templates that the verification scripts copy outside the workspace.
-- `docs/`: Markdown guides. There is no documentation site.
+- `docs/`: maintainer docs for releasing, package verification, and manual testing.
 
-The dev app imports only public package exports. `pnpm dev` builds the library, then watches it
+The docs app imports only public package exports. `pnpm dev` builds the library, then watches it
 alongside Next.js. Restart it after changing the package's `exports` map.
 
 npm publishes 0.1.0 under the `latest` tag. That makes it the default install, not a stable API.

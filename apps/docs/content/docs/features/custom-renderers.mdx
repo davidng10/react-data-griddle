@@ -1,0 +1,96 @@
+---
+title: Custom renderers
+description: Render your own cell and header content, including controls inside cells.
+---
+
+import { ApiTable } from "@/components/api-table";
+import { Demo } from "@/components/demo";
+import CustomRenderers from "@/examples/features/custom-renderers";
+
+`renderCell` replaces a cell's content and `renderHeader` replaces a header's. Without them, the
+grid shows the accessor value or the column name as a string. Renderers change what's inside the
+box. The grid still owns the box itself: its position, size, padding, and borders.
+
+This grid renders an avatar with a truncated name, a status badge, right-aligned currency, a header
+that shows the column's current width (resize it to watch the number change), and a star button in
+an action column:
+
+<Demo file="features/custom-renderers.tsx">
+  <CustomRenderers />
+</Demo>
+
+## Render contexts
+
+`renderCell` receives a `CellRenderContext` with the `row`, its `rowId` and current `rowIndex`, the
+`column` and `columnId`, the accessor's result as `value`, and the cell's `width` and `height`.
+`renderHeader` receives a `HeaderRenderContext` with the `column`, its `columnIndex` in visual order,
+its `frozen` zone, its `width`, and whether it's `resizable` and `reorderable`. The same contexts go
+to `cellClassName` and `headerClassName`.
+
+`rowIndex` changes when rows move, so use `rowId` for anything you store or act on, as the star
+button does.
+
+## Keep renderers pure and cheap
+
+Renderers run during render, for every visible cell, and again as cells scroll into view. Keep them
+pure: no effects that fetch, no state that lives only in the renderer, and no work you can do once
+outside the grid. Format values with a shared formatter, as the demo does with `Intl.NumberFormat`.
+
+Read what a renderer needs from the row, not from component state the columns close over. Then
+`columns` can stay stable, at module scope or in `useMemo`, and the grid only gets a new column
+schema when the columns really change. The demo keeps the star in each row for this reason. Cells
+re-render when `rows` changes, not when the selection changes.
+
+## Layout inside the cell
+
+The cell is a fixed box. Larger content doesn't make the row taller, so pick a `rowHeight` that fits
+it (the demo uses 36px for the avatar and badge). Content that overflows is clipped, with no
+ellipsis.
+
+- Fill the box with `height: 100%` and use flex to align, as `cellLayout` does in the demo.
+- Give the label that should shrink `min-width: 0` and the truncation styles. Keep fixed-size
+  pieces such as icons at `flex: none`.
+- Set your own `line-height` on elements that center text. Inheriting the row's pushes it off
+  center.
+- Don't change the cell's own position, size, transforms, or borders, from the renderer or from
+  `cellClassName`. The [styling guide](../guide/styling.mdx#content-overflow) has the full list.
+
+## Controls inside cells and headers
+
+The grid ignores a press that starts on a `button`, `input`, `select`, `textarea`, `a`,
+`contenteditable` element, or an element with `role="button"` or `role="checkbox"`. The press
+doesn't focus the cell, start a range, or start a resize or reorder, and the control gets its click
+as normal. A press on anything else, such as a `div` with an `onClick`, also focuses the cell and
+can start a drag. Use a real control for anything clickable.
+
+Put buttons that act on a row in an action column (`type: "action"`), as the star does. Action cells
+can't be focused, selected, or edited, so the control's click is the only thing that happens.
+Controls in normal cells work too, but the cell is still focusable and editable around them.
+
+Controls keep the browser's normal tab order. Tab and Shift+Tab visit every rendered control before
+leaving the grid, and the grid's own shortcuts only work while the grid container has focus, not
+while a control inside a cell does. Give each control an accessible name (the star's `aria-label`
+includes the person's name), show a visible focus style, and don't use a positive `tabindex`. Only
+rendered controls can take focus, so controls in offscreen rows aren't in the tab order. The
+[accessibility guide](../guide/accessibility.mdx#keyboard-and-focus) covers this in detail.
+
+Column classes and renderers don't reach the pending-value overlay shown during a save, or the
+floating header copy shown while reordering. Both show plain text.
+
+## Props
+
+<ApiTable
+  file="column.ts"
+  name="Column"
+  pick={[
+    "renderCell",
+    "renderHeader",
+    "cellClassName",
+    "headerClassName",
+    "type",
+  ]}
+/>
+
+The full contexts are in [`CellRenderContext`](../api/column.mdx#cellrendercontext) and
+[`HeaderRenderContext`](../api/column.mdx#headerrendercontext). To replace the editor instead, see
+[custom editors](./editing.mdx#custom-editors).

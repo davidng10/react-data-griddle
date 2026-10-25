@@ -57,3 +57,13 @@ Router, add `"use client"` to the file that renders `DataGrid`, as in the exampl
 components can render that file and pass it serializable props such as `rows`. Functions like
 `getRowId`, `accessor`, and `onCellCommit` can't cross the boundary, so define them in the client
 file.
+See [Next.js](./guide/nextjs.mdx) for what the server renders.
+
+## Next steps
+
+- [State ownership](./guide/state-ownership.mdx) and [row identity](./guide/row-identity.mdx)
+  explain what your application owns and how the grid follows data changes.
+- [Editing](./features/editing.mdx) and [validation and errors](./features/validation-and-errors.mdx)
+  cover the save flow.
+- [Styling](./guide/styling.mdx) lists the theme tokens and styling hooks.
+- The [playground](./examples/playground.mdx) shows the props in one grid.

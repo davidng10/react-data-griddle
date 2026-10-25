@@ -16,9 +16,9 @@ packages/data-griddle/src/editors/                   portal host and built-in ed
 packages/data-griddle/src/internal/                  shared layout, styling, and utility code
 ```
 
-`apps/docs/examples/BasicExample.tsx` is the single editable grid at `/`. The dev app doesn't render
-the Markdown guides. `fixtures/shared/Example.tsx` holds the public-API scenarios that the
-consumer checks copy into packed consumers. Neither example ships in the package. See the
+`apps/docs/` is the docs site. Its pages in `apps/docs/content/docs/` render the demos in
+`apps/docs/examples/`. `fixtures/shared/Example.tsx` holds the public-API scenarios that the
+consumer checks copy into packed consumers. Neither ships in the package. See the
 [package verification guide](./docs/PACKAGE_VERIFICATION.md) for what the checks cover and how to
 run them.
 
@@ -172,7 +172,7 @@ plus the computed font family, font size, text color, and direction, from a ref 
 It watches theme attributes on the root and its ancestors, and listens for resizes and system color
 scheme changes. It batches reads into one animation frame and doesn't poll. Cleanup cancels queued
 work and removes listeners. When you change the token list, update the token table in
-[docs/STYLING.md](./docs/STYLING.md) too. An editor hidden by loading stops watching. When it
+[styling guide](./apps/docs/content/docs/guide/styling.mdx) too. An editor hidden by loading stops watching. When it
 shows again or remounts, it recopies the theme and remeasures without discarding the draft.
 
 ## Public customization and commands
@@ -191,7 +191,7 @@ layout effect keeps current, and read the latest store snapshot, so a control th
 callback still acts on current state. The dispatcher checks loading, read-only state, and whether
 the row ID still exists. The gutter stops keyboard and pointer-down events so a checkbox press
 doesn't start cell navigation or editing. The grid decides what selection means, not the control.
-What consumers must handle is in [docs/INTEGRATION.md](./docs/INTEGRATION.md).
+What consumers must handle is in [custom checkboxes](./apps/docs/content/docs/features/custom-checkboxes.mdx).
 
 ## Accessibility
 
@@ -201,7 +201,7 @@ store, and only writes the cell attributes that changed, so cells don't re-rende
 the grid instance and keyed by row ID. Controls keep their native `tabindex`. There is no
 interaction mode, tab-stop cache, or F6 handler. The ARIA row elements have no size and never
 duplicate content. Whether screen readers follow `aria-owns` here is untested. See the
-[manual release matrix](./docs/ACCESSIBILITY.md#manual-release-matrix).
+[manual release matrix](./docs/MANUAL_TESTING.md#manual-release-matrix).
 
 The application reports async save errors through `onCellCommitError`. The grid has no live region
 for commits. The default editor still links its own validation error to its input. Pending values

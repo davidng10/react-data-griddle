@@ -4,6 +4,7 @@ import { createGenerator } from "fumadocs-typescript";
 import ts from "typescript";
 
 import { CodeBlock } from "./code-block";
+import { DocsTable } from "./docs-table";
 
 import type { DocEntry } from "fumadocs-typescript";
 import type { ReactNode } from "react";
@@ -98,38 +99,36 @@ export async function ApiTable({ file, name, pick }: ApiTableProps) {
   );
 
   return (
-    <div className="api-table not-prose">
-      <table>
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Description</th>
-            <th>Type</th>
-            <th>Default</th>
-          </tr>
-        </thead>
-        <tbody>
-          {doc.entries.map((entry) => {
-            const defaultValue = entry.tags.find(
-              (tag) => tag.name === "default" || tag.name === "defaultValue"
-            )?.text;
-            return (
-              <tr key={entry.name}>
-                <td className="api-table-name">
-                  {entry.name}
-                  {entry.required && (
-                    <span className="api-table-required">required</span>
-                  )}
-                </td>
-                <td>{renderInline(entry.description)}</td>
-                <td className="api-table-type">{displayType(entry)}</td>
-                <td className="api-table-code">{defaultValue ?? "–"}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <DocsTable className="api-table">
+      <thead>
+        <tr>
+          <th>Property</th>
+          <th>Description</th>
+          <th>Type</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+        {doc.entries.map((entry) => {
+          const defaultValue = entry.tags.find(
+            (tag) => tag.name === "default" || tag.name === "defaultValue"
+          )?.text;
+          return (
+            <tr key={entry.name}>
+              <td className="api-table-name">
+                {entry.name}
+                {entry.required && (
+                  <span className="api-table-required">required</span>
+                )}
+              </td>
+              <td>{renderInline(entry.description)}</td>
+              <td className="api-table-type">{displayType(entry)}</td>
+              <td className="api-table-code">{defaultValue ?? "–"}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </DocsTable>
   );
 }
 

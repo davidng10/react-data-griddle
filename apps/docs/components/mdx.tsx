@@ -2,6 +2,7 @@ import { CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 
 import { CODE_BACKGROUND } from "./code-block";
+import { DocsTable } from "./docs-table";
 
 import type { MDXComponents } from "mdx/types";
 
@@ -16,6 +17,7 @@ export function getMDXComponents(components?: MDXComponents) {
         <Pre>{props.children}</Pre>
       </CodeBlock>
     ),
+    table: DocsTable,
     ...components,
   } satisfies MDXComponents;
 }

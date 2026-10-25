@@ -1,4 +1,11 @@
-# Loading and empty results
+---
+title: Loading and empty
+description: Skeletons, refresh overlays, empty results, and how the grid behaves while loading.
+---
+
+import { ApiTable } from "@/components/api-table";
+import { Demo } from "@/components/demo";
+import Loading from "@/examples/features/loading-and-empty";
 
 The grid doesn't fetch data. Set `loading` (default `false`) yourself, and keep passing the previous
 rows during a refresh. `rows` is required but accepts `null` or `undefined` when no result exists
@@ -12,17 +19,12 @@ yet. An empty array means the request finished with no rows and never turns load
 | `[]`                 | `false` | `emptyContent`, defaulting to "No rows"                     |
 | Populated array      | `false` | Normal grid                                                 |
 
-```tsx
-<DataGrid
-  rows={data}
-  loading={isFetching}
-  columns={columns}
-  getRowId={(row) => row.id}
-  aria-label="People"
-  loadingLabel="Updating people"
-  emptyContent={<span>No matching people</span>}
-/>
-```
+**Refresh** keeps the current rows under an overlay, **Load from scratch** passes `null` to show
+the skeleton, and **Load no results** finishes with an empty array:
+
+<Demo file="features/loading-and-empty.tsx">
+  <Loading />
+</Demo>
 
 Passing `null` during a refresh shows the skeleton instead of the current rows. The grid also draws
 static skeleton cells for rows that virtualization hasn't rendered yet, regardless of `loading`.
@@ -35,7 +37,8 @@ indicators should not be interactive, and they don't replace `loadingLabel`, whi
 reader announcement. The default spinner rotates even when the user prefers reduced motion. Custom
 indicators handle their own animation.
 
-The [styling contract](./STYLING.md) lists the loading and empty-result tokens and parts.
+The [styling guide](../guide/styling.mdx#parts-and-states) lists the loading and empty-result
+tokens and parts.
 
 ## Interaction while loading
 
@@ -52,10 +55,10 @@ If the edited row or column disappears in the refresh, a notice keeps the draft 
 returns or the user discards it. After a refresh, the grid restores focus unless the user moved it to
 another control. A click outside the grid before loading starts can still commit an edit.
 
-## Test coverage
+## Props
 
-The [packed-consumer example](../fixtures/shared/Example.tsx) has an initial-loading grid, a
-refresh toggle, and an empty-results button. The [consumer checks](./PACKAGE_VERIFICATION.md) run
-those scenarios. The checks don't cover custom indicators or a delayed refresh during editing, and
-the dev app has no controls for them. Loading states haven't been tested on physical mobile devices
-or with assistive technology.
+<ApiTable
+  file="grid.ts"
+  name="DataGridProps"
+  pick={["rows", "loading", "loadingIndicator", "loadingLabel", "emptyContent"]}
+/>

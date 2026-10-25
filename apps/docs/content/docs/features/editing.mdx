@@ -1,0 +1,97 @@
+---
+title: Editing
+description: Built-in text and select editors, the save flow, keyboard behavior, and custom editors.
+---
+
+import { ApiTable } from "@/components/api-table";
+import { Demo } from "@/components/demo";
+import CustomEditor from "@/examples/features/editing-custom-editor";
+import EditingSelect from "@/examples/features/editing-select";
+
+`accessor` reads the value from your row. Set `editable` to `true` or to a function of the cell
+context to enable editing. Action columns can't be edited. The built-in text editor opens on Enter,
+F2, typing, or a second click on the focused cell. `type: "select"` shows `options`, and
+`renderEditor` replaces the editor's content.
+
+Here Name uses the text editor, Department uses a native select, and Role is editable only for
+active employees:
+
+<Demo file="features/editing-select.tsx">
+  <EditingSelect />
+</Demo>
+
+## The save flow
+
+The grid holds the draft in `ctx.draft`, and `ctx.setDraft(next)` changes it. When the user saves:
+
+1. If you supplied `parseValue(draft, ctx)`, it converts the draft synchronously.
+2. If the parsed value is `Object.is` equal to the current accessor value, the editor closes without
+   validating or calling a commit callback.
+3. Otherwise `validate(parsedValue, ctx)` runs. See [validation and errors](./validation-and-errors.mdx).
+4. If the value is accepted, the editor closes and the grid calls the column's `onCommit`, or the
+   grid's `onCellCommit` if the column has none. The payload has the row and column IDs, the current
+   row, the previous value, and the parsed new value.
+
+Without a commit callback, an accepted value just closes the editor and leaves `rows` unchanged.
+The grid does not store row data, so your callback must write the value back into `rows`.
+
+## Explicit and implicit saves
+
+Explicit saves are `ctx.commit()`, Enter or Tab in the built-in text editor, and picking a native
+select option. In the built-in text editor, Enter moves down, Tab moves right, Shift+Enter inserts a
+newline, and Escape cancels. `ctx.commit()` saves without moving. `ctx.cancel()` discards the draft
+and returns focus to the grid. Blurring the built-in text editor and pressing outside the editor host
+are implicit saves. Custom editors decide what blur does, and `ctx.commit()` always validates as an
+explicit save.
+
+## Custom editors
+
+The grid draws a themeable editor frame and positions it in a portal under `document.body`. See
+[editor themes](../guide/styling.mdx#editor-themes) for tokens and sizing limits. Your editor
+content receives `CellEditContext<T>` and inherits the frame's theme.
+
+This Status editor has its own Save and Cancel buttons and a suggestion list. Type to filter the
+suggestions, click one to put it in the draft, then press Enter or Save:
+
+<Demo file="features/editing-custom-editor.tsx" height={360}>
+  <CustomEditor />
+</Demo>
+
+A custom editor must:
+
+- Focus a sensible input on mount, move focus between its own controls, and use `ctx.status` and
+  `ctx.error` to give labels, visible focus, and validation announcements.
+- Decide which keys save and cancel, keep native input and IME behavior working, and call
+  `preventDefault` on keys it handles. `ctx.commit()` doesn't move focus on Tab, so decide where Tab
+  goes and don't trap focus. Escape should cancel. The open editor receives all keyboard input.
+- Keep popups inside the editor host in the DOM, including a component library's popup container.
+  Being a React child isn't enough. A popup rendered separately into `document.body` is outside the
+  host, and clicking it saves the edit. A positioned element inside the host can extend past the
+  frame and still count as inside.
+- Not save on every blur, because focus moving to your own popup is a blur. Check whether
+  `relatedTarget` is inside a wrapper around all your controls, or use explicit Save and Cancel
+  buttons. The grid already ignores presses inside its host.
+- Use the context callbacks, not internal stores, because the callbacks handle loading and row
+  identity. Keep the draft in `ctx.draft` so it survives loading and a missing target.
+
+The [accessibility guide](../guide/accessibility.mdx#editing-validation-and-errors) covers how the
+built-in editors behave for keyboard, screen reader, and touch users.
+
+## Props
+
+<ApiTable
+  file="column.ts"
+  name="Column"
+  pick={[
+    "editable",
+    "type",
+    "options",
+    "renderEditor",
+    "parseValue",
+    "onCommit",
+  ]}
+/>
+
+<ApiTable file="grid.ts" name="DataGridProps" pick={["onCellCommit"]} />
+
+The full editor context is in [`CellEditContext`](../api/column.mdx#celleditcontext).

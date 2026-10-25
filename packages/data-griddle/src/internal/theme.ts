@@ -1,7 +1,7 @@
 // Private leaf notification: built-in editors remeasure after typography is applied.
 export const EDITOR_THEME_CHANGE = "dgr-internal-theme-change";
 
-/** Public tokens copied to an active body-mounted editor. Keep in sync with docs/STYLING.md. */
+/** Public tokens copied to an active body-mounted editor. Keep in sync with the token table in apps/docs/content/docs/guide/styling.mdx. */
 export const GRID_THEME_TOKENS = [
   "--dgr-background",
   "--dgr-text-color",

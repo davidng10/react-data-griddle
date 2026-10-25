@@ -26,8 +26,9 @@ pnpm dev
 ```
 
 `pnpm dev` builds the library, watches `packages/data-griddle/src/`, and serves
-one editable grid at `/`. The grid lives in `apps/docs/app/page.tsx`. The app
-imports the built `dist/`, so your edits appear after the watcher rebuilds.
+the docs site. Open `/docs/` for live demos. Pages live in
+`apps/docs/content/docs/` and the demos they render in `apps/docs/examples/`. The
+app imports the built `dist/`, so your edits appear after the watcher rebuilds.
 
 For the rendering model and performance constraints, read [INTERNALS.md](INTERNALS.md).
 
@@ -150,7 +151,8 @@ Git ignores `.env.local`.
 ## Edit only the root README
 
 `prepack` generates the package README from the root `README.md`, and Git ignores the
-generated copy. Topic guides live in `docs/`.
+generated copy. User guides live in the docs site, under `apps/docs/content/docs/`.
+Maintainer docs live in `docs/`.
 
 ## Leave versions to Release Please
 
